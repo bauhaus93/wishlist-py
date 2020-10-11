@@ -1,0 +1,8 @@
+requests
+BeautifulSoup4
+python-dotenv
+Flask
+Flask-APScheduler
+flask-sqlalchemy
+flask-migrate
+pytz

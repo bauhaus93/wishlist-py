@@ -1,0 +1,27 @@
+{% extends "base.html" %} {% block content %}
+<h1>Forderungen vom {{ date }}</h1>
+
+<table class="table table-responsiv table-responsive">
+  <caption>
+    Produktliste
+  </caption>
+  <thead>
+    <th scope="col"></th>
+    <th scope="col">Preis</th>
+    <th scope="col">Sterne</th>
+    <th scope="col">Produkt</th>
+  </thead>
+  <tbody>
+    {% for product in products %}
+    <tr>
+      <td scope="row"><img src="{{ product.link_image }}" class="" /></td>
+      <td scope="row">€{{ product.price }}</td>
+      <td scope="row">{{ product.stars }}/5.0</td>
+      <td scope="row">
+        <a href="{{ product.link }}" target="_blank">{{ product.name }}</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
