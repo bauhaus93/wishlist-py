@@ -61,6 +61,9 @@
       </div>
     </nav>
 
-    <div id="content" class="container">{% block content %}{% endblock %}</div>
+    <div id="content" class="container">
+      <h1>{{ title }}</h1>
+      <p>{% block content %}{% endblock %}</p>
+    </div>
   </body>
 </html>

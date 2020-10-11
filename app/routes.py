@@ -6,7 +6,7 @@ import pytz
 from flask import jsonify, make_response, redirect, render_template
 
 from app import app
-from app.models import Wishlist
+from app.models import Product, Wishlist
 
 
 def get_navigation():
@@ -28,19 +28,33 @@ def index():
     else:
         date = get_datetime(time.time(), "%d.%m.%Y %H:%M")
         products = []
+    title = f"Forderungen vom {date}"
     return render_template(
-        "index.html", navigation=get_navigation(), date=date, products=products
+        "index.html",
+        title=title,
+        navigation=get_navigation(),
+        date=date,
+        products=products,
     )
 
 
 @app.route("/timeline")
 def timeline():
-    return render_template("timeline.html", navigation=get_navigation())
+    return render_template(
+        "timeline.html", title="Historischer Überblick", navigation=get_navigation()
+    )
 
 
 @app.route("/new")
 def new_products():
-    return not_found("")
+    new_products = Product.query.order_by(Product.id.desc()).limit(5)
+    title = f"Top 5 Neuheiten"
+    return render_template(
+        "index.html",
+        title=title,
+        navigation=get_navigation(),
+        products=new_products,
+    )
 
 
 @app.route("/api/datapoints")
@@ -67,12 +81,18 @@ def api_fetch_db():
 @app.errorhandler(500)
 def internal_error(_error):
     return make_response(
-        render_template("error500.html", navigation=get_navigation()), 500
+        render_template(
+            "error500.html", title="Internal error", navigation=get_navigation()
+        ),
+        500,
     )
 
 
 @app.errorhandler(404)
 def not_found(_error):
     return make_response(
-        render_template("error404.html", navigation=get_navigation()), 404
+        render_template(
+            "error404.html", title="Page not found", navigation=get_navigation()
+        ),
+        404,
     )
