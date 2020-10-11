@@ -10,7 +10,7 @@ from app.models import Wishlist
 
 
 def get_navigation():
-    return [("index", "Aktuell"), ("timeline", "Timeline")]
+    return [("index", "Aktuell"), ("new_products", "Neues"), ("timeline", "Timeline")]
 
 
 def get_datetime(timestamp, fmt):
@@ -36,6 +36,11 @@ def index():
 @app.route("/timeline")
 def timeline():
     return render_template("timeline.html", navigation=get_navigation())
+
+
+@app.route("/new")
+def new_products():
+    return not_found("")
 
 
 @app.route("/api/datapoints")
