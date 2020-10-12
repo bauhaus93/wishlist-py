@@ -12,7 +12,6 @@ RUN mkdir db
 COPY app app
 COPY migrations migrations
 COPY config.py wishlist.py scripts/run.sh .env ./
-COPY app.db ./
 
 RUN chmod +x run.sh
 RUN chown -R wishlist:wishlist ./

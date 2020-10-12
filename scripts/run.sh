@@ -4,10 +4,10 @@ if [ -z ${PORT} ]; then
 	PORT='5000'
 fi
 
-if [ -d "${PWD}/venv" ]; then
-	$PWD/venv/bin/flask db upgrade
-	$PWD/venv/bin/gunicorn -b :${PORT} --access-logfile - --error-logfile - wishlist:app
-else
-	echo "Directory ${PWD}/venv not existing, aborting!"
-	exit 1
+if [ ! -d "${PWD}/venv" ]; then
+	python3 -mvenv ${PWD}/venv
+	$PWD/venv/bin/pip install --upgrade pip
+	$PWD/venv/bin/pip install -r requirements.txt gunicorn
 fi
+$PWD/venv/bin/flask db upgrade
+$PWD/venv/bin/gunicorn -b :${PORT} --access-logfile - --error-logfile - wishlist:app

@@ -3,10 +3,11 @@ from base64 import b64encode
 from datetime import datetime
 
 import pytz
-from flask import jsonify, make_response, redirect, render_template
+from flask import jsonify, make_response, redirect, render_template, url_for
 
 from app import app
 from app.models import Product, Wishlist
+from app.scrape_task import update_wishlist_db
 
 
 def get_navigation():
@@ -67,15 +68,10 @@ def api_datapoints():
     return make_response(jsonify(data), 200)
 
 
-@app.route("/api/fetchdb")
-def api_fetch_db():
-    data = None
-    with open("app.db", "rb") as f:
-        data = f.read()
-    if data:
-        data_b64 = b64encode(data)
-        return make_response(data_b64, 200)
-    return internal_error("")
+@app.route("/api/forcefetch")
+def api_force_fetch():
+    update_wishlist_db()
+    return redirect(url_for("index"))
 
 
 @app.errorhandler(500)
