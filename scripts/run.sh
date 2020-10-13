@@ -9,5 +9,6 @@ if [ ! -d "${PWD}/venv" ]; then
 	$PWD/venv/bin/pip install --upgrade pip
 	$PWD/venv/bin/pip install -r requirements.txt gunicorn
 fi
-$PWD/venv/bin/flask db upgrade
-$PWD/venv/bin/gunicorn -b :${PORT} --access-logfile gunicorn_access.log --error-logfile gunicorn_error.log wishlist:app
+source "${PWD}/venv/bin/activate" &&
+	flask db upgrade &&
+	gunicorn -b :${PORT} --access-logfile gunicorn_access.log --error-logfile gunicorn_error.log wishlist:app
