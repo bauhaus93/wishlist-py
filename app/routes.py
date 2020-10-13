@@ -5,7 +5,7 @@ from datetime import datetime
 import pytz
 from flask import jsonify, make_response, redirect, render_template, url_for
 
-from app import app
+from app import app, query
 from app.models import Product, Wishlist
 from app.scrape_task import update_wishlist_db
 
@@ -22,7 +22,7 @@ def get_datetime(timestamp, fmt):
 @app.route("/")
 @app.route("/index")
 def index():
-    last_wishlist = Wishlist.query.order_by(Wishlist.timestamp.desc()).first()
+    last_wishlist = query.get_last_wishlist()
     if last_wishlist:
         products = sorted(last_wishlist.products, key=lambda p: p.price, reverse=True)
         date = get_datetime(last_wishlist.timestamp, "%d.%m.%Y %H:%M")
@@ -48,13 +48,13 @@ def timeline():
 
 @app.route("/new")
 def new_products():
-    new_products = Product.query.order_by(Product.id.desc()).limit(5)
-    title = f"Top 5 Neuheiten"
+    products = Product.query.order_by(Product.id.desc()).limit(5)
+    title = "Top 5 Neuheiten"
     return render_template(
         "index.html",
         title=title,
         navigation=get_navigation(),
-        products=new_products,
+        products=products,
     )
 
 
@@ -72,6 +72,13 @@ def api_datapoints():
 def api_force_fetch():
     update_wishlist_db()
     return redirect(url_for("index"))
+
+
+@app.route("/api/fetchdb")
+def api_fetch_db():
+    with open("db/app.db") as f:
+        data = b64encode(f.read())
+    return make_response(data, 200)
 
 
 @app.errorhandler(500)

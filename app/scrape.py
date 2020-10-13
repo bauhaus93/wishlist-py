@@ -8,7 +8,9 @@ from urllib.parse import urlparse
 import requests
 from bs4 import BeautifulSoup
 
-log = logging.getLogger(__name__)
+from app import logger
+
+log = logger.get()
 
 
 def scrape_wishlist(url, tries=5, timeout=5.0):
