@@ -5,9 +5,7 @@ from app import db
 
 class Wishlist(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    timestamp = db.Column(
-        db.Integer, index=True, default=lambda: int(time.time()), nullable=False
-    )
+    timestamp = db.Column(db.Integer, default=lambda: int(time.time()), nullable=False)
     products = db.relationship(
         "Product", secondary="wishlist_product", backref="wishlists", lazy="dynamic"
     )
@@ -25,3 +23,13 @@ class Product(db.Model):
     stars = db.Column(db.Float, nullable=False)
     link = db.Column(db.String(128), nullable=True)
     link_image = db.Column(db.String(128), nullable=True)
+
+    def as_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "price": self.price,
+            "stars": self.stars,
+            "link": self.link,
+            "link_image": self.link_image,
+        }

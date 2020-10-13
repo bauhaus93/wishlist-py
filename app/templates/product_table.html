@@ -1,0 +1,21 @@
+<table class="table table-responsive">
+  <caption>
+    Forderungsliste
+  </caption>
+
+  <tbody>
+    {% for product in products %}
+    <tr>
+      <td scope="row">
+        <img src="{{ product.link_image }}" class="img-fluid" />
+        <p class="font-weight-bold text-center">€ {{ product.price }}</p>
+      </td>
+
+      <td scope="row">
+        <p>Gefordert seit {{ product.lifetime }}</p>
+        <a href="{{ product.link }}" target="_blank">{{ product.name }}</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>

@@ -29,7 +29,7 @@ $.drawChart = function (canvasId, labels, datapoints) {
         yAxes: [
           {
             ticks: {
-              beginAtZero: true,
+              beginAtZero: false,
             },
           },
         ],

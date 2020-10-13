@@ -19,12 +19,37 @@ def get_datetime(timestamp, fmt):
     return timezone.localize(datetime.fromtimestamp(timestamp)).strftime(fmt)
 
 
+def format_duration(duration):
+    hours = int(duration) // 3600
+    days = hours // 24
+    weeks = days // 7
+    if weeks > 0:
+        return f"{weeks}w {days % 7}d"
+    if days > 0:
+        return f"{days}d {hours % 24}h"
+    if hours > 0:
+        return f"{hours}h"
+    return "Jetzt"
+
+
+def create_exended_product_list(products):
+    return list(
+        map(
+            lambda p: {
+                **p.as_dict(),
+                "lifetime": format_duration(query.get_product_lifetime(p.id)),
+            },
+            sorted(products, key=lambda p: p.price, reverse=True),
+        )
+    )
+
+
 @app.route("/")
 @app.route("/index")
 def index():
     last_wishlist = query.get_last_wishlist()
     if last_wishlist:
-        products = sorted(last_wishlist.products, key=lambda p: p.price, reverse=True)
+        products = create_exended_product_list(last_wishlist.products)
         date = get_datetime(last_wishlist.timestamp, "%d.%m.%Y %H:%M")
     else:
         date = get_datetime(time.time(), "%d.%m.%Y %H:%M")
@@ -48,10 +73,12 @@ def timeline():
 
 @app.route("/new")
 def new_products():
-    products = Product.query.order_by(Product.id.desc()).limit(5)
+    products = create_exended_product_list(
+        Product.query.order_by(Product.id.desc()).limit(5)
+    )
     title = "Top 5 Neuheiten"
     return render_template(
-        "index.html",
+        "newest.html",
         title=title,
         navigation=get_navigation(),
         products=products,

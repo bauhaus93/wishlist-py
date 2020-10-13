@@ -32,6 +32,8 @@ def update_wishlist_db():
 
 def need_wishlist_update(wishlist):
     last_wishlist = query.get_last_wishlist()
+    if last_wishlist is None:
+        return True
     diff = int(time.time()) - last_wishlist.timestamp
     log.info(
         "Last wishlist timestamp is %02dh%02dm old"
