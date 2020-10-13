@@ -5,7 +5,7 @@ from datetime import datetime
 import pytz
 from flask import jsonify, make_response, redirect, render_template, url_for
 
-from app import app, query
+from app import app, cache, query
 from app.models import Product, Wishlist
 from app.scrape_task import update_wishlist_db
 
@@ -33,12 +33,17 @@ def format_duration(duration):
 
 
 def create_exended_product_list(products):
+    def extend_product(p):
+        lifetime = query.get_product_lifetime(p.id)
+        return {
+            **p.as_dict(),
+            "lifetime_formatted": format_duration(lifetime),
+            "lifetime": lifetime,
+        }
+
     return list(
         map(
-            lambda p: {
-                **p.as_dict(),
-                "lifetime": format_duration(query.get_product_lifetime(p.id)),
-            },
+            extend_product,
             sorted(products, key=lambda p: p.price, reverse=True),
         )
     )
@@ -46,6 +51,7 @@ def create_exended_product_list(products):
 
 @app.route("/")
 @app.route("/index")
+@cache.cached(timeout=60)
 def index():
     last_wishlist = query.get_last_wishlist()
     if last_wishlist:
@@ -65,6 +71,7 @@ def index():
 
 
 @app.route("/timeline")
+@cache.cached(timeout=60)
 def timeline():
     return render_template(
         "timeline.html", title="Historischer Überblick", navigation=get_navigation()
@@ -72,10 +79,12 @@ def timeline():
 
 
 @app.route("/new")
+@cache.cached(timeout=60)
 def new_products():
-    products = create_exended_product_list(
-        Product.query.order_by(Product.id.desc()).limit(5)
-    )
+    products = sorted(
+        create_exended_product_list(query.get_last_wishlist().products),
+        key=lambda p: p["lifetime"],
+    )[:5]
     title = "Top 5 Neuheiten"
     return render_template(
         "newest.html",
@@ -103,7 +112,7 @@ def api_force_fetch():
 
 @app.route("/api/fetchdb")
 def api_fetch_db():
-    with open("db/app.db") as f:
+    with open("db/app.db", "rb") as f:
         data = b64encode(f.read())
     return make_response(data, 200)
 

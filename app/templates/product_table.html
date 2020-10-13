@@ -12,7 +12,11 @@
       </td>
 
       <td scope="row">
-        <p>Gefordert seit {{ product.lifetime }}</p>
+        <p>
+          Zweck:
+          <a href="{{ product.source_link }}">{{ product.source_name }}</a>,
+          Vorhanden seit: {{ product.lifetime_formatted }}
+        </p>
         <a href="{{ product.link }}" target="_blank">{{ product.name }}</a>
       </td>
     </tr>

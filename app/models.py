@@ -23,6 +23,7 @@ class Product(db.Model):
     stars = db.Column(db.Float, nullable=False)
     link = db.Column(db.String(128), nullable=True)
     link_image = db.Column(db.String(128), nullable=True)
+    source_id = db.Column(db.Integer, db.ForeignKey("source.id"))
 
     def as_dict(self):
         return {
@@ -32,4 +33,16 @@ class Product(db.Model):
             "stars": self.stars,
             "link": self.link,
             "link_image": self.link_image,
+            "source_link": self.source.url,
+            "source_name": self.source.name,
         }
+
+
+class Source(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64), nullable=False)
+    url = db.Column(db.String(128), nullable=False)
+    products = db.relationship("Product", backref="source", lazy="dynamic")
+
+    def __repr__(self):
+        return self.name

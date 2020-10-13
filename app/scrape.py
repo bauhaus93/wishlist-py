@@ -1,8 +1,6 @@
 #!/bin/env python
 
-import logging
 import time
-from functools import reduce
 from urllib.parse import urlparse
 
 import requests
@@ -13,8 +11,8 @@ from app import logger
 log = logger.get()
 
 
-def scrape_wishlist(url, tries=5, timeout=5.0):
-    log.info("Scraping wishlist from '%s'" % url)
+def scrape_wishlist(url, wishlist_name, tries=5, timeout=5.0):
+    log.info("Scraping wishlist '%s' from '%s'" % (wishlist_name, url))
     domain = urlparse(url).netloc
     headers = {
         "User-Agent": "Chrome/51.0",
@@ -86,6 +84,8 @@ def scrape_wishlist(url, tries=5, timeout=5.0):
             "link": link,
             "stars": stars,
             "img_url": img_url,
+            "source": url,
+            "source_name": wishlist_name,
         }
         if any(map(lambda v: v is None, product.values())):
             log.error("Could not find all values for product: %s" % product)
@@ -95,10 +95,12 @@ def scrape_wishlist(url, tries=5, timeout=5.0):
     return products
 
 
-def scrape_wishlists(urls):
+def scrape_wishlists(name_url_pairs):
+    if name_url_pairs is None:
+        return None
     wishlists = []
-    for url in urls:
-        wishlist = scrape_wishlist(url)
+    for (name, url) in name_url_pairs:
+        wishlist = scrape_wishlist(url, name)
         if wishlist is None:
             return None
         wishlists.extend(wishlist)

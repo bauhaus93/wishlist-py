@@ -2,8 +2,8 @@ import logging
 import os
 import time
 
-from app import db, logger, query, scheduler
-from app.models import Product, Wishlist, WishlistProduct
+from app import app, db, logger, query, scheduler
+from app.models import Product, Source, Wishlist, WishlistProduct
 from app.scrape import scrape_wishlists
 
 log = logger.get()
@@ -13,12 +13,8 @@ log = logger.get()
 # @scheduler.task("interval", id="scrape_wishlist_job", seconds=10)
 def update_wishlist_db():
     log.info("Start scraping of wishlists...")
-    env_wl = os.environ.get("WISHLISTS", None)
-    if env_wl is None:
-        log.error("Environment variable 'WISHLISTS' missing, can't update wishlist!")
-        return
-    wishlist_urls = env_wl.split(" ")
-    wishlist = scrape_wishlists(wishlist_urls)
+    wishlist_sources = app.config.get("WISHLIST_SOURCES", None)
+    wishlist = scrape_wishlists(wishlist_sources)
     if wishlist is None:
         log.error("Couldn't scrape wishlists!")
         return
@@ -53,6 +49,10 @@ def add_wishlist_to_db(wishlist_list):
     new_count = 0
     for entry in wishlist_list:
         product = Product.query.filter_by(name=entry["name"]).first()
+        source = Source.query.filter_by(name=entry["source"]).first()
+        if source is None:
+            source = Source(name=entry["source_name"], url=entry["source"])
+            db.session.add(source)
         if product is None:
             product = Product(
                 name=entry["name"],
@@ -60,6 +60,7 @@ def add_wishlist_to_db(wishlist_list):
                 stars=entry["stars"],
                 link=entry["link"],
                 link_image=entry["img_url"],
+                source=source,
             )
             db.session.add(product)
             new_count += 1
@@ -88,6 +89,12 @@ def add_wishlist_to_db(wishlist_list):
                     % (product.name[:20], product.link_image, entry["img_url"])
                 )
                 product.link_image = entry["img_url"]
+            if product.source != source:
+                log.info(
+                    "Source of '%s[..]' changed: %s -> %s"
+                    % (product.name[:20], product.source, source)
+                )
+                product.source = source
 
         wishlist.products.append(product)
     db.session.commit()
