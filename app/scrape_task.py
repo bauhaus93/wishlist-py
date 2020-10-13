@@ -9,8 +9,8 @@ from app.scrape import scrape_wishlists
 log = logger.get()
 
 
-# @scheduler.task("cron", id="scrape_wishlist_job", minute="0", misfire_grace_time=60)
-@scheduler.task("interval", id="scrape_wishlist_job", seconds=10)
+@scheduler.task("cron", id="scrape_wishlist_job", minute="0", misfire_grace_time=60)
+# @scheduler.task("interval", id="scrape_wishlist_job", seconds=10)
 def update_wishlist_db():
     log.info("Start scraping of wishlists...")
     env_wl = os.environ.get("WISHLISTS", None)
