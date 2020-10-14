@@ -45,7 +45,9 @@ def need_wishlist_update(wishlist):
 
 def add_wishlist_to_db(wishlist_list):
     log.info("Adding wishlist to database...")
-    wishlist = Wishlist()
+
+    value = round(sum(map(lambda e: entry["price"], wishlist_list)))
+    wishlist = Wishlist(value=value)
     db.session.add(wishlist)
     new_count = 0
     for entry in wishlist_list:

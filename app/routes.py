@@ -5,7 +5,7 @@ from datetime import datetime
 import pytz
 from flask import jsonify, make_response, redirect, render_template, url_for
 
-from app import app, cache, query
+from app import app, cache, db, query
 from app.models import Product, Wishlist
 from app.scrape_task import update_wishlist_db
 
@@ -100,7 +100,11 @@ def api_datapoints():
     data = {"labels": [], "data": []}
     for wishlist in wishlists:
         data["labels"].append(get_datetime(wishlist.timestamp, "%d.%m.%Y %H:%M"))
-        data["data"].append(round(sum(map(lambda p: p.price, wishlist.products)), 2))
+        if wishlist.value is None:
+            value = round(sum(map(lambda p: p.price, wishlist.products)), 2)
+            wishlist.value = value
+            db.session.commit()
+        data["data"].append(wishlist.value)
     return make_response(jsonify(data), 200)
 
 

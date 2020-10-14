@@ -6,6 +6,7 @@ from app import db
 class Wishlist(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     timestamp = db.Column(db.Integer, default=lambda: int(time.time()), nullable=False)
+    value = db.Column(db.Float, default=None)
     products = db.relationship(
         "Product", secondary="wishlist_product", backref="wishlists", lazy="dynamic"
     )

@@ -1,3 +1,5 @@
+import time
+
 from app.models import Product, Wishlist
 
 
@@ -17,4 +19,4 @@ def get_product_lifetime(product_id):
         if wishlist.id != last_wishlist.id + 1:
             return last_wishlist.timestamp - first_wishlist.timestamp
         last_wishlist = wishlist
-    return last_wishlist.timestamp - first_wishlist.timestamp
+    return int(time.time()) - first_wishlist.timestamp
