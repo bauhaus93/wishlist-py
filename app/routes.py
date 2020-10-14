@@ -55,10 +55,14 @@ def timeline():
 @app.route("/new")
 @cache.cached(timeout=60)
 def new_products():
-    products = sorted(
-        create_exended_product_list(query.get_last_wishlist().products),
-        key=lambda p: p["lifetime"],
-    )[:5]
+    last_wishlist = query.get_last_wishlist()
+    if last_wishlist:
+        products = sorted(
+            create_exended_product_list(query.get_last_wishlist().products),
+            key=lambda p: p["lifetime"],
+        )[:5]
+    else:
+        products = []
     title = "Top 5 Neuheiten"
     return render_template(
         "newest.html",

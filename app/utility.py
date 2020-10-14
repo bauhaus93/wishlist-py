@@ -82,9 +82,11 @@ def create_exended_product_list(products):
             "lifetime": lifetime,
         }
 
-    return list(
-        map(
-            extend_product,
-            sorted(products, key=lambda p: p.price, reverse=True),
+    if products:
+        return list(
+            map(
+                extend_product,
+                sorted(products, key=lambda p: p.price, reverse=True),
+            )
         )
-    )
+    return []
