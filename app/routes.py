@@ -82,7 +82,7 @@ def initiate_fetch():
 @cache.cached(timeout=60)
 def api_history_day():
     (labels, values) = create_timeline_data(
-        int(time.time() - 24 * 3600), interval=3600, datefmt="%d.%m.%Y %H:%M"
+        int(time.time() - 24 * 3600), interval=3600, datefmt="%d.%m %H:%M"
     )
     return make_response(jsonify({"labels": labels, "values": values}), 200)
 
@@ -91,7 +91,7 @@ def api_history_day():
 @cache.cached(timeout=3600)
 def api_history_week():
     (labels, values) = create_timeline_data(
-        int(time.time() - 7 * 24 * 3600), interval=24 * 3600, datefmt="%d.%m.%Y"
+        int(time.time() - 7 * 24 * 3600), interval=24 * 3600, datefmt="%d.%m"
     )
     return make_response(jsonify({"labels": labels, "values": values}), 200)
 

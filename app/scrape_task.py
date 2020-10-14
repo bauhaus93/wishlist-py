@@ -9,7 +9,7 @@ from app.scrape import scrape_wishlists
 log = logger.get()
 
 
-@scheduler.task("cron", id="scrape_wishlist_job", minute="0", misfire_grace_time=60)
+@scheduler.task("cron", id="scrape_wishlist_job", minute="0", misfire_grace_time=360)
 def update_wishlist_db():
     log.info("Start scraping of wishlists...")
     wishlist_sources = app.config.get("WISHLIST_SOURCES", None)
