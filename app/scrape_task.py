@@ -9,12 +9,12 @@ from app.scrape import scrape_wishlists
 log = logger.get()
 
 
-@scheduler.task("cron", id="scrape_wishlist_job", minute="0", misfire_grace_time=360)
+@scheduler.task("cron", id="scrape_wishlist_job", minute="0", misfire_grace_time=600)
 def update_wishlist_db():
     log.info("Start scraping of wishlists...")
     wishlist_sources = app.config.get("WISHLIST_SOURCES", None)
     wishlist = scrape_wishlists(wishlist_sources)
-    if wishlist is None:
+    if len(wishlist) == 0:
         log.error("Couldn't scrape wishlists!")
         return
     log.info("Wishlists successfully scraped, found %d products!" % len(wishlist))
@@ -24,6 +24,7 @@ def update_wishlist_db():
     else:
         log.info("Wishlist didn't change, only check for product updates")
         update_products(wishlist)
+        log.info("Updated products!")
 
 
 def need_wishlist_update(wishlist):
@@ -45,7 +46,7 @@ def need_wishlist_update(wishlist):
 def add_wishlist_to_db(wishlist_list):
     log.info("Adding wishlist to database...")
 
-    value = round(sum(map(lambda e: e["price"] * e["quantity"], wishlist_list)))
+    value = round(sum(map(lambda e: e["price"] * e["quantity"], wishlist_list)), 2)
     wishlist = Wishlist(value=value)
     db.session.add(wishlist)
     new_count = 0
@@ -55,6 +56,7 @@ def add_wishlist_to_db(wishlist_list):
         if source is None:
             source = Source(name=entry["source_name"], url=entry["source"])
             db.session.add(source)
+            db.session.commit()
         if product is None:
             product = Product(
                 name=entry["name"],
@@ -67,7 +69,7 @@ def add_wishlist_to_db(wishlist_list):
                 source=source,
             )
             log.info(
-                f"Adding product {product.name[:20]}, price = {product.price:.02f}"
+                f"Adding product {product.name[:20]}[..], price = {product.price:.02f}"
             )
             db.session.add(product)
             new_count += 1

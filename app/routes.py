@@ -113,6 +113,7 @@ def api_fetch_db():
 
 
 @app.errorhandler(500)
+@cache.cached(timeout=60)
 def internal_error(_error):
     return make_response(
         render_template(
@@ -123,6 +124,7 @@ def internal_error(_error):
 
 
 @app.errorhandler(404)
+@cache.cached(timeout=60)
 def not_found(_error):
     return make_response(
         render_template(

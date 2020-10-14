@@ -118,15 +118,12 @@ def scrape_wishlist(url, wishlist_name, tries=5, try_timeout=3.0):
 
 def scrape_wishlists(name_url_pairs):
     if name_url_pairs is None:
-        return None
+        log.error("Received no name/urls pairs for scraping!")
+        return []
     wishlists = []
     for (name, url) in name_url_pairs:
         wishlist = scrape_wishlist(url, name)
-        if wishlist is None:
-            wishlists = None
-            break
         wishlists.extend(wishlist)
-
     return wishlists
 
 
