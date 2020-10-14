@@ -1,2 +1,11 @@
-{% extends "base.html" %} {% block content %} {% include "product_table.html" %}
-{% endblock %}
+{% extends "base.html" %} {% block content %}
+
+<div class="row">
+  <div class="col-sm-5">Anzahl: {{ product_count }}</div>
+  <div class="col-sm-5">Gesamtwert: €{{ total_value }}</div>
+  <div class="col-sm-4"></div>
+</div>
+<div class="row">
+  <div class="col">{% include "product_table.html" %}</div>
+  <div class="row">{% endblock %}</div>
+</div>
