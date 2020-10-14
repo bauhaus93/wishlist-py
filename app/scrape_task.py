@@ -66,6 +66,9 @@ def add_wishlist_to_db(wishlist_list):
                 item_id=entry["item_id"],
                 source=source,
             )
+            log.info(
+                f"Adding product {product.name[:20]}, price = {product.price:.02f}"
+            )
             db.session.add(product)
             new_count += 1
         else:
