@@ -5,48 +5,22 @@ from datetime import datetime
 import pytz
 from flask import jsonify, make_response, redirect, render_template, url_for
 
-from app import app, cache, db, query
+from app import app, cache, db, logger, query
 from app.models import Product, Wishlist
 from app.scrape_task import update_wishlist_db
+from app.utility import (create_exended_product_list, create_timeline_data,
+                         get_datetime)
+
+log = logger.get()
 
 
 def get_navigation():
-    return [("index", "Aktuell"), ("new_products", "Neues"), ("timeline", "Timeline")]
-
-
-def get_datetime(timestamp, fmt):
-    timezone = pytz.timezone("Europe/Berlin")
-    return timezone.localize(datetime.fromtimestamp(timestamp)).strftime(fmt)
-
-
-def format_duration(duration):
-    hours = int(duration) // 3600
-    days = hours // 24
-    weeks = days // 7
-    if weeks > 0:
-        return f"{weeks}w {days % 7}d"
-    if days > 0:
-        return f"{days}d {hours % 24}h"
-    if hours > 0:
-        return f"{hours}h"
-    return "Jetzt"
-
-
-def create_exended_product_list(products):
-    def extend_product(p):
-        lifetime = query.get_product_lifetime(p.id)
-        return {
-            **p.as_dict(),
-            "lifetime_formatted": format_duration(lifetime),
-            "lifetime": lifetime,
-        }
-
-    return list(
-        map(
-            extend_product,
-            sorted(products, key=lambda p: p.price, reverse=True),
-        )
-    )
+    return [
+        ("index", "Aktuell"),
+        ("new_products", "Neues"),
+        ("timeline", "Timeline"),
+        ("initiate_fetch", "Fetch"),
+    ]
 
 
 @app.route("/")
@@ -94,24 +68,37 @@ def new_products():
     )
 
 
-@app.route("/api/datapoints")
-def api_datapoints():
-    wishlists = Wishlist.query.order_by(Wishlist.timestamp).all()
-    data = {"labels": [], "data": []}
-    for wishlist in wishlists:
-        data["labels"].append(get_datetime(wishlist.timestamp, "%d.%m.%Y %H:%M"))
-        if wishlist.value is None:
-            value = round(sum(map(lambda p: p.price, wishlist.products)), 2)
-            wishlist.value = value
-            db.session.commit()
-        data["data"].append(wishlist.value)
-    return make_response(jsonify(data), 200)
-
-
-@app.route("/api/forcefetch")
-def api_force_fetch():
+@app.route("/fetch")
+def initiate_fetch():
     update_wishlist_db()
     return redirect(url_for("index"))
+
+
+@app.route("/api/history/day")
+@cache.cached(timeout=60)
+def api_history_day():
+    (labels, values) = create_timeline_data(
+        int(time.time() - 24 * 3600), interval=3600, datefmt="%d.%m.%Y %H:%M"
+    )
+    return make_response(jsonify({"labels": labels, "values": values}), 200)
+
+
+@app.route("/api/history/week")
+@cache.cached(timeout=3600)
+def api_history_week():
+    (labels, values) = create_timeline_data(
+        int(time.time() - 7 * 24 * 3600), interval=24 * 3600, datefmt="%d.%m.%Y"
+    )
+    return make_response(jsonify({"labels": labels, "values": values}), 200)
+
+
+@app.route("/api/history/month")
+@cache.cached(timeout=3600)
+def api_history_month():
+    (labels, values) = create_timeline_data(
+        int(time.time() - 4 * 7 * 24 * 3600), interval=24 * 3600, datefmt="%d.%m.%Y"
+    )
+    return make_response(jsonify({"labels": labels, "values": values}), 200)
 
 
 @app.route("/api/fetchdb")

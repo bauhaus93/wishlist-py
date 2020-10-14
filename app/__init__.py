@@ -25,5 +25,4 @@ scheduler.start()
 
 cache = Cache(app, config={"CACHE_TYPE": "simple"})
 
-
 from app import models, routes, scrape_task

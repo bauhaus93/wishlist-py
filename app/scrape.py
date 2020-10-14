@@ -1,52 +1,47 @@
 #!/bin/env python
 
+import os
 import time
 from urllib.parse import urlparse
 
-import requests
 from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.firefox.options import Options
 
 from app import logger
 
 log = logger.get()
 
 
-def scrape_wishlist(url, wishlist_name, tries=5, timeout=5.0):
+def scrape_wishlist(url, wishlist_name, driver, scroll_count=5, scroll_sleeptime=2.0):
     log.info("Scraping wishlist '%s' from '%s'" % (wishlist_name, url))
     domain = urlparse(url).netloc
-    headers = {
-        "User-Agent": "Chrome/51.0",
-        "Accept-Encoding": "gzip, deflate",
-        "Accept": "*/*",
-        "Connection": "keep-alive",
-    }
 
-    for i in range(tries):
-        result = requests.get(url, headers=headers)
-        if result.status_code == 200:
-            break
-        if i + 1 < tries:
-            log.warn(
-                f"Got http {result.status_code}, try {i + 1}/{tries}, retrying in {timeout} secs..."
+    driver.get(url)
+    screen_height = driver.execute_script("return window.screen.height;")
+    for i in range(scroll_count):
+        time.sleep(scroll_sleeptime)
+        driver.execute_script(
+            "window.scrollTo(0, {screen_height}*{i});".format(
+                screen_height=screen_height, i=i
             )
-            time.sleep(2.0)
+        )
 
-    if result.status_code != 200:
-        log.error("Could not retrieve wishlist after {tries} tries!")
-        return None
-
-    soup = BeautifulSoup(result.text, "html.parser")
+    soup = BeautifulSoup(driver.page_source, "html.parser")
 
     list_items = soup.find(id="g-items")
 
     products = []
 
     for item in list_items.find_all("li"):
+
         price = None
         name = None
-        stars = None
+        stars = 0.0
         link = None
         img_url = None
+        quantity = None
+        item_id = item.get("data-itemid", None)
         try:
             price_str = item.get("data-price", None)
             if price_str:
@@ -59,6 +54,15 @@ def scrape_wishlist(url, wishlist_name, tries=5, timeout=5.0):
             img_url = img_tag.get("src", None)
         else:
             log.error("Could not find img tag for product entry")
+
+        for span in item.findAll("span"):
+            if "itemRequested_" in span.get("id", ""):
+                try:
+                    quantity = int(span.string)
+                except ValueError:
+                    log.error(
+                        "Could not convert item quantity to int, string was '%s'" % span
+                    )
 
         for links in item.findAll("a"):
             if "itemName" in links.get("id", ""):
@@ -86,6 +90,8 @@ def scrape_wishlist(url, wishlist_name, tries=5, timeout=5.0):
             "img_url": img_url,
             "source": url,
             "source_name": wishlist_name,
+            "item_id": item_id,
+            "quantity": quantity,
         }
         if any(map(lambda v: v is None, product.values())):
             log.error("Could not find all values for product: %s" % product)
@@ -98,25 +104,30 @@ def scrape_wishlist(url, wishlist_name, tries=5, timeout=5.0):
 def scrape_wishlists(name_url_pairs):
     if name_url_pairs is None:
         return None
+    options = Options()
+    options.headless = True
+    driver = webdriver.Firefox(options=options)
+
     wishlists = []
     for (name, url) in name_url_pairs:
-        wishlist = scrape_wishlist(url, name)
+        wishlist = scrape_wishlist(url, name, driver)
         if wishlist is None:
-            return None
+            wishlists = None
+            break
         wishlists.extend(wishlist)
+
+    driver.close()
     return wishlists
 
 
-# if __name__ == "__main__":
-# urls = [
-#     "https://www.amazon.de/registry/wishlist/CXTWTCBX97J6",
-#     "https://www.amazon.de/hz/wishlist/ls/3KD9WD4CSULN7",
-# ]
+if __name__ == "__main__":
+    urls = [
+        ("a", "https://www.amazon.de/registry/wishlist/CXTWTCBX97J6"),
+        ("b", "https://www.amazon.de/hz/wishlist/ls/3KD9WD4CSULN7"),
+    ]
 
-# wishlists = []
-# for url in urls:
-#     wishlist = scrape_wishlist(url)
-#     if wishlist:
-#         wishlists.extend(wishlist)
-# total_price = reduce(lambda acc, e: acc + e["price"], wishlists, 0.0)
-# print(f"items: {len(wishlists)} | total price: € {total_price:6.2f}")
+    wishlist = scrape_wishlists(urls)
+    for item in wishlist:
+        print(item)
+    total_price = sum(map(lambda e: e["price"], wishlist))
+    print(f"items: {len(wishlist)} | total price: € {total_price:6.2f}")

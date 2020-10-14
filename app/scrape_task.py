@@ -10,7 +10,6 @@ log = logger.get()
 
 
 @scheduler.task("cron", id="scrape_wishlist_job", minute="0", misfire_grace_time=60)
-# @scheduler.task("interval", id="scrape_wishlist_job", seconds=10)
 def update_wishlist_db():
     log.info("Start scraping of wishlists...")
     wishlist_sources = app.config.get("WISHLIST_SOURCES", None)
@@ -31,27 +30,27 @@ def need_wishlist_update(wishlist):
     last_wishlist = query.get_last_wishlist()
     if last_wishlist is None:
         return True
-    diff = int(time.time()) - last_wishlist.timestamp
-    log.info(
-        "Last wishlist timestamp is %02dh%02dm old"
-        % (int(diff / 3600), int(diff % 3600) / 60)
+    last_products = set(
+        map(
+            lambda p: (p.item_id, int(p.price * 100), p.quantity),
+            last_wishlist.products,
+        )
     )
-    if time.time() - last_wishlist.timestamp >= 24 * 3600:
-        return True
-    last_products = set(map(lambda p: p.name, last_wishlist.products))
-    new_products = set(map(lambda p: p["name"], wishlist))
-    return last_products.union(new_products) != new_products
+    new_products = set(
+        map(lambda p: (p["item_id"], int(p["price"] * 100), p["quantity"]), wishlist)
+    )
+    return last_products != new_products
 
 
 def add_wishlist_to_db(wishlist_list):
     log.info("Adding wishlist to database...")
 
-    value = round(sum(map(lambda e: entry["price"], wishlist_list)))
+    value = round(sum(map(lambda e: e["price"] * e["quantity"], wishlist_list)))
     wishlist = Wishlist(value=value)
     db.session.add(wishlist)
     new_count = 0
     for entry in wishlist_list:
-        product = Product.query.filter_by(name=entry["name"]).first()
+        product = Product.query.filter_by(item_id=entry["item_id"]).first()
         source = Source.query.filter_by(name=entry["source"]).first()
         if source is None:
             source = Source(name=entry["source_name"], url=entry["source"])
@@ -60,9 +59,11 @@ def add_wishlist_to_db(wishlist_list):
             product = Product(
                 name=entry["name"],
                 price=entry["price"],
+                quantity=entry["quantity"],
                 stars=entry["stars"],
                 link=entry["link"],
                 link_image=entry["img_url"],
+                item_id=entry["item_id"],
                 source=source,
             )
             db.session.add(product)
@@ -106,6 +107,13 @@ def update_product(product_db, product_scraped, source):
             % (product_db.name[:20], product_db.stars, product_scraped["stars"])
         )
         product_db.stars = product_scraped["stars"]
+    if product_db.quantity != product_scraped["quantity"]:
+        log.info(
+            "Quantity of '%s[..]' changed: %d -> %d"
+            % (product_db.name[:20], product_db.quantity, product_scraped["quantity"])
+        )
+        product_db.quantity = product_scraped["quantity"]
+
     if product_db.link != product_scraped["link"]:
         log.info(
             "Link of '%s[..]' changed: %s -> %s"
@@ -118,6 +126,13 @@ def update_product(product_db, product_scraped, source):
             % (product_db.name[:20], product_db.link_image, product_scraped["img_url"])
         )
         product_db.link_image = product_scraped["img_url"]
+    if product_db.item_id != product_scraped["item_id"]:
+        log.info(
+            "Item ID of '%s[..]' changed: %s -> %s"
+            % (product_db.name[:20], product_db.item_id, product_scraped["item_id"])
+        )
+        product_db.item_id = product_scraped["item_id"]
+
     if product_db.source is None or product_db.source.url != source.url:
         log.info(
             "Source of '%s[..]' changed: %s -> %s"

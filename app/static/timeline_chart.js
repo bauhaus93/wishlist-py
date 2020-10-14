@@ -1,6 +1,6 @@
 $.drawChart = function (canvasId, labels, datapoints) {
   var ctx = document.getElementById(canvasId).getContext("2d");
-  new Chart(ctx, {
+  return new Chart(ctx, {
     type: "line",
     data: {
       labels: labels,

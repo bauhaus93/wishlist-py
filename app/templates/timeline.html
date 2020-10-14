@@ -1,16 +1,55 @@
 {% extends "base.html" %} {% block content %}
 <div class="row">
   <div class="col-12 card">
-    <canvas id="timeline-chart"></canvas>
+    <canvas id="timeline-chart" class="responsive"></canvas>
   </div>
+	<div class="col mt-2">
+			<div class="btn-group btn-group-toggle" data-toggle="buttons">
+				<label class="btn btn-primary">
+				<input type="radio" id="buttonDay" name="timespan" autocomplete="off" checked>Tag</input>
+				</label>
+				<label class="btn btn-primary">
+				<input type="radio" id="buttonWeek" name="timespan" autocomplete="off">Woche</input>
+				</label>
+				<label class="btn btn-primary">
+				<input type="radio" id="buttonMonth" name="timespan" autocomplete="off">Monat</input>
+				</label>
+
+			</div>
+		</div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.min.js"></script>
 <script src="{{ url_for('static', filename='timeline_chart.js') }}"></script>
 <script>
-  $(function () {
-    $.get("api/datapoints", function (response) {
-      $.drawChart("timeline-chart", response.labels, response.data);
-    });
-  });
+
+	var chart = null;
+	function updateTable(source) {
+		$.get(source, function (response) {
+			if (chart) {
+					chart.destroy();
+				}
+		  chart = $.drawChart("timeline-chart", response.labels, response.values);
+		});
+	}
+	$(function() {
+			updateTable("api/history/day")
+		});
+
+	$("#buttonDay").click(function() {
+			if ($("#buttonDay").is(":checked")) {
+					updateTable("api/history/day");
+			}
+	});
+	$("#buttonWeek").click(function() {
+			if ($("#buttonWeek").is(":checked")) {
+					updateTable("api/history/week");
+			}
+	});
+	$("#buttonMonth").click(function() {
+			if ($("#buttonMonth").is(":checked")) {
+					updateTable("api/history/month");
+			}
+	});
+
 </script>
 {% endblock%}

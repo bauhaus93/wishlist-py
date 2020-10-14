@@ -24,6 +24,8 @@ class Product(db.Model):
     stars = db.Column(db.Float, nullable=False)
     link = db.Column(db.String(128), nullable=True)
     link_image = db.Column(db.String(128), nullable=True)
+    quantity = db.Column(db.Integer, default=1, nullable=False)
+    item_id = db.Column(db.String(64), nullable=True)
     source_id = db.Column(db.Integer, db.ForeignKey("source.id"))
 
     def as_dict(self):
@@ -31,9 +33,11 @@ class Product(db.Model):
             "id": self.id,
             "name": self.name,
             "price": self.price,
+            "quantity": self.quantity,
             "stars": self.stars,
             "link": self.link,
             "link_image": self.link_image,
+            "item_id": self.item_id,
             "source_link": self.source.url if self.source else "",
             "source_name": self.source.name if self.source else "Unbekannt",
         }
