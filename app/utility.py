@@ -36,7 +36,7 @@ def create_timeline_data(
 
     wishlists = (
         Wishlist.query.filter(
-            (Wishlist.timestamp >= start) & (Wishlist.timestamp <= end)
+            (Wishlist.timestamp >= start) & (Wishlist.timestamp <= end + interval)
         )
         .order_by(Wishlist.timestamp)
         .all()
