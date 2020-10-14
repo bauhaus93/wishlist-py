@@ -4,37 +4,36 @@ import os
 import time
 from urllib.parse import urlparse
 
+import requests
 from bs4 import BeautifulSoup
-from selenium import webdriver
-from selenium.webdriver.firefox.options import Options
 
 from app import logger
 
 log = logger.get()
 
 
-def scrape_wishlist(url, wishlist_name, driver, scroll_count=5, scroll_sleeptime=2.0):
-    log.info("Scraping wishlist '%s' from '%s'" % (wishlist_name, url))
+def scrape_wishlist(url, wishlist_name, tries=5, try_timeout=3.0):
+    log.info("Scraping for wishlist '%s'" % wishlist_name)
     domain = urlparse(url).netloc
 
-    driver.get(url)
-    screen_height = driver.execute_script("return window.screen.height;")
-    for i in range(scroll_count):
-        time.sleep(scroll_sleeptime)
-        driver.execute_script(
-            "window.scrollTo(0, {screen_height}*{i});".format(
-                screen_height=screen_height, i=i
-            )
-        )
+    for i in range(tries):
+        response = requests.get(url, headers={"User-Agent": "Chrome/70.0"})
+        if response.status_code == 200:
+            break
+        else:
+            log.warn("Received http {response.status_code}, try {i+1}/{tries}")
+            time.sleep(try_timeout)
+    if response.status_code != 200:
+        log.error("Couldn't retrieve url after {tries}!")
+        return []
 
-    soup = BeautifulSoup(driver.page_source, "html.parser")
+    soup = BeautifulSoup(response.text, "html.parser")
 
     list_items = soup.find(id="g-items")
 
     products = []
 
     for item in list_items.find_all("li"):
-
         price = None
         name = None
         stars = 0.0
@@ -95,28 +94,39 @@ def scrape_wishlist(url, wishlist_name, driver, scroll_count=5, scroll_sleeptime
         }
         if any(map(lambda v: v is None, product.values())):
             log.error("Could not find all values for product: %s" % product)
-            return None
+            return []
 
         products.append(product)
+    for link in list_items.findAll("a"):
+        link_class = link.get("class", None)
+        if (
+            link_class
+            and "g-visible-no-js" in link_class
+            and "wl-see-more" in link_class
+        ):
+            next_link = link.get("href", None)
+            if next_link:
+                next_link = "https://" + domain + next_link
+                log.info(f"Found link to more items, following it")
+                products.extend(
+                    scrape_wishlist(next_link, wishlist_name, tries, try_timeout)
+                )
+                break
+
     return products
 
 
 def scrape_wishlists(name_url_pairs):
     if name_url_pairs is None:
         return None
-    options = Options()
-    options.headless = True
-    driver = webdriver.Firefox(options=options)
-
     wishlists = []
     for (name, url) in name_url_pairs:
-        wishlist = scrape_wishlist(url, name, driver)
+        wishlist = scrape_wishlist(url, name)
         if wishlist is None:
             wishlists = None
             break
         wishlists.extend(wishlist)
 
-    driver.close()
     return wishlists
 
 

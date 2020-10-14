@@ -7,4 +7,3 @@ Flask-Caching
 flask-sqlalchemy
 flask-migrate
 pytz
-selenium
