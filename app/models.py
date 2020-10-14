@@ -33,8 +33,8 @@ class Product(db.Model):
             "stars": self.stars,
             "link": self.link,
             "link_image": self.link_image,
-            "source_link": self.source.url,
-            "source_name": self.source.name,
+            "source_link": self.source.url if self.source else "",
+            "source_name": self.source.name if self.source else "Unbekannt",
         }
 
 

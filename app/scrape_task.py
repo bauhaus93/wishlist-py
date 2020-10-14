@@ -20,10 +20,11 @@ def update_wishlist_db():
         return
     log.info("Wishlists successfully scraped, found %d products!" % len(wishlist))
     if need_wishlist_update(wishlist):
-        log.info("Wishlist needs update")
+        log.info("Wishlist changed, add new one")
         add_wishlist_to_db(wishlist)
     else:
-        log.info("No wishlist update needed")
+        log.info("Wishlist didn't change, only check for product updates")
+        update_products(wishlist)
 
 
 def need_wishlist_update(wishlist):
@@ -65,37 +66,59 @@ def add_wishlist_to_db(wishlist_list):
             db.session.add(product)
             new_count += 1
         else:
-            if int(product.price * 100) != int(entry["price"] * 100):
-                log.info(
-                    "Price of '%s[..]' changed: %.02f -> %.02f"
-                    % (product.name[:20], product.price, entry["price"])
-                )
-                product.price = entry["price"]
-            if int(product.stars * 10) != int(entry["stars"] * 10):
-                log.info(
-                    "Stars of '%s[..]' changed: %.01f -> %.01f"
-                    % (product.name[:20], product.stars, entry["stars"])
-                )
-                product.stars = entry["stars"]
-            if product.link != entry["link"]:
-                log.info(
-                    "Link of '%s[..]' changed: %s -> %s"
-                    % (product.name[:20], product.link, entry["link"])
-                )
-                product.link = entry["link"]
-            if product.link_image != entry["img_url"]:
-                log.info(
-                    "Img link of '%s[..]' changed: %s -> %s"
-                    % (product.name[:20], product.link_image, entry["img_url"])
-                )
-                product.link_image = entry["img_url"]
-            if product.source != source:
-                log.info(
-                    "Source of '%s[..]' changed: %s -> %s"
-                    % (product.name[:20], product.source, source)
-                )
-                product.source = source
-
+            update_product(product, entry, source)
         wishlist.products.append(product)
     db.session.commit()
     log.info("Added wishlist to database, got %d new products!" % new_count)
+
+
+def update_products(products_scraped):
+    for product_scraped in products_scraped:
+        product = Product.query.filter_by(name=product_scraped["name"]).first()
+        if product is None:
+            log.warn(
+                "Wanted to update product, but product isn't present in db: '%s[..]'"
+                % (product_scraped["name"][:20])
+            )
+            continue
+        source = Source.query.filter_by(name=product_scraped["source"]).first()
+        if source is None:
+            source = Source(
+                name=product_scraped["source_name"], url=product_scraped["source"]
+            )
+            db.session.add(source)
+        update_product(product, product_scraped, source)
+    db.session.commit()
+
+
+def update_product(product_db, product_scraped, source):
+    if int(product_db.price * 100) != int(product_scraped["price"] * 100):
+        log.info(
+            "Price of '%s[..]' changed: %.02f -> %.02f"
+            % (product_db.name[:20], product_db.price, product_scraped["price"])
+        )
+        product_db.price = product_scraped["price"]
+    if int(product_db.stars * 10) != int(product_scraped["stars"] * 10):
+        log.info(
+            "Stars of '%s[..]' changed: %.01f -> %.01f"
+            % (product_db.name[:20], product_db.stars, product_scraped["stars"])
+        )
+        product_db.stars = product_scraped["stars"]
+    if product_db.link != product_scraped["link"]:
+        log.info(
+            "Link of '%s[..]' changed: %s -> %s"
+            % (product_db.name[:20], product_db.link, product_scraped["link"])
+        )
+        product_db.link = product_scraped["link"]
+    if product_db.link_image != product_scraped["img_url"]:
+        log.info(
+            "Img link of '%s[..]' changed: %s -> %s"
+            % (product_db.name[:20], product_db.link_image, product_scraped["img_url"])
+        )
+        product_db.link_image = product_scraped["img_url"]
+    if product_db.source is None or product_db.source.url != source.url:
+        log.info(
+            "Source of '%s[..]' changed: %s -> %s"
+            % (product_db.name[:20], product_db.source, source)
+        )
+        product_db.source = source
