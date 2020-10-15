@@ -32,7 +32,7 @@ def create_timeline_data(
     start, end=int(time.time()), interval=24 * 3600, datefmt="%d.%m.%Y"
 ):
     start = (start // 3600) * 3600
-    end = (end // 3600) * 3600
+    # end = (end // 3600) * 3600
 
     wishlists = (
         Wishlist.query.filter(

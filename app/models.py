@@ -31,7 +31,7 @@ class Product(db.Model):
     link = db.Column(db.String(128), nullable=True)
     link_image = db.Column(db.String(128), nullable=True)
     quantity = db.Column(db.Integer, default=1, nullable=False)
-    item_id = db.Column(db.String(64), nullable=True)
+    item_id = db.Column(db.String(64), nullable=False)
     source_id = db.Column(db.Integer, db.ForeignKey("source.id"))
 
     def as_dict(self):
