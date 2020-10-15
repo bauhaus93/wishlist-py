@@ -20,7 +20,10 @@ def upgrade():
     with op.batch_alter_table("wishlist", schema=None) as batch_op:
         batch_op.add_column(
             sa.Column(
-                "content_hash", sa.Integer(), nullable=False, server_default=hash("")
+                "content_hash",
+                sa.Integer(),
+                nullable=False,
+                server_default=str(hash("")),
             )
         )
 
