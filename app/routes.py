@@ -32,9 +32,14 @@ def index():
     if last_wishlist:
         products = create_exended_product_list(last_wishlist.products)
         total_value = last_wishlist.value
+        last_change_timestamp = query.get_last_change_timestamp()
+        if not last_change_timestamp:
+            last_change_timestamp = query.get_first_wishlist().timestamp
+        last_change_date = get_datetime(last_change_timestamp, "%d.%m.%Y %H:%M")
     else:
         products = []
         total_value = 0.0
+        last_change_date = "Nie"
     date = get_datetime((time.time() // 3600) * 3600, "%d.%m.%Y %H:%M")
     title = f"Forderungen vom {date}"
     return render_template(
@@ -42,6 +47,7 @@ def index():
         title=title,
         navigation=get_navigation(),
         date=date,
+        last_change_date=last_change_date,
         products=products,
         product_count=len(products),
         total_value=total_value,

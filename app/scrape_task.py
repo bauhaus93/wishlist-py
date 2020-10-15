@@ -47,7 +47,7 @@ def add_wishlist_to_db(wishlist_list):
     log.info("Adding wishlist to database...")
 
     value = round(sum(map(lambda e: e["price"] * e["quantity"], wishlist_list)), 2)
-    wishlist = Wishlist(value=value)
+    wishlist = Wishlist(value=value, content_hash=0)
     db.session.add(wishlist)
     new_count = 0
     for entry in wishlist_list:
@@ -76,6 +76,8 @@ def add_wishlist_to_db(wishlist_list):
         else:
             update_product(product, entry, source)
         wishlist.products.append(product)
+    db.session.commit()
+    wishlist.content_hash = wishlist.calculate_content_hash()
     db.session.commit()
     log.info("Added wishlist to database, got %d new products!" % new_count)
 

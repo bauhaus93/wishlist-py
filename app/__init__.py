@@ -25,4 +25,10 @@ scheduler.start()
 
 cache = Cache(app, config={"CACHE_TYPE": "simple"})
 
-from app import models, routes, scrape_task
+
+from app import models, routes
+
+if app.config.get("APPLY_DB_FIXES") == True:
+    from app import db_fixes
+
+    db_fixes.apply_db_fixes()

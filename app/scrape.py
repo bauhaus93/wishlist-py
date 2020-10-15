@@ -68,7 +68,6 @@ def scrape_wishlist(url, wishlist_name, tries=5, try_timeout=3.0):
         log.info("Found link to more items, following it")
         parsed_next = urlparse(next_path)
         next_url = urlunparse((*parsed_url[:2], *parsed_next[2:]))
-        print(next_url)
         products.extend(scrape_wishlist(next_url, wishlist_name, tries, try_timeout))
 
     return products

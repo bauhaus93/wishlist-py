@@ -14,6 +14,7 @@ class Config(object):
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     PAGINATION_PER_PAGE = 10
+    APPLY_DB_FIXES = True
 
     WISHLIST_SOURCES = [
         ("Brivad", "https://www.amazon.de/registry/wishlist/CXTWTCBX97J6"),

@@ -1,5 +1,7 @@
 import time
 
+from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
+
 from app import db
 
 
@@ -7,9 +9,13 @@ class Wishlist(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     timestamp = db.Column(db.Integer, default=lambda: int(time.time()), nullable=False)
     value = db.Column(db.Float, default=None)
+    content_hash = db.Column(db.Integer, default=hash(""), nullable=False)
     products = db.relationship(
         "Product", secondary="wishlist_product", backref="wishlists", lazy="dynamic"
     )
+
+    def calculate_content_hash(self):
+        return hash("-".join(map(lambda p: str(p.id), self.products)))
 
 
 class WishlistProduct(db.Model):
