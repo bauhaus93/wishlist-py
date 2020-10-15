@@ -19,6 +19,7 @@ def get_navigation():
         ("index", "Aktuell"),
         ("new_products", "Neues"),
         ("timeline", "Timeline"),
+        ("product_archive", "Archiv"),
         ("initiate_fetch", "Fetch"),
     ]
 
@@ -30,12 +31,11 @@ def index():
     last_wishlist = query.get_last_wishlist()
     if last_wishlist:
         products = create_exended_product_list(last_wishlist.products)
-        date = get_datetime(last_wishlist.timestamp, "%d.%m.%Y %H:%M")
         total_value = last_wishlist.value
     else:
-        date = get_datetime(time.time(), "%d.%m.%Y %H:%M")
         products = []
         total_value = 0.0
+    date = get_datetime((time.time() // 3600) * 3600, "%d.%m.%Y %H:%M")
     title = f"Forderungen vom {date}"
     return render_template(
         "index.html",
@@ -76,6 +76,24 @@ def new_products():
     )
 
 
+@app.route("/archive")
+@app.route("/archive/<int:page>")
+@cache.cached(timeout=60)
+def product_archive(page=1):
+    last_wishlist = query.get_last_wishlist()
+    product_pagination = Product.query.filter(
+        ~Product.id.in_(map(lambda p: p.id, last_wishlist.products))
+    ).paginate(page, app.config.get("PAGINATION_PER_PAGE"), True)
+    title = "Archiv"
+    return render_template(
+        "archive.html",
+        title=title,
+        navigation=get_navigation(),
+        products=create_exended_product_list(product_pagination.items),
+        pagination=product_pagination,
+    )
+
+
 @app.route("/fetch")
 def initiate_fetch():
     update_wishlist_db()
@@ -92,7 +110,7 @@ def api_history_day():
 
 
 @app.route("/api/history/week")
-@cache.cached(timeout=3600)
+@cache.cached(timeout=60)
 def api_history_week():
     (labels, values) = create_timeline_data(
         int(time.time() - 7 * 24 * 3600), interval=24 * 3600, datefmt="%d.%m"
@@ -101,10 +119,10 @@ def api_history_week():
 
 
 @app.route("/api/history/month")
-@cache.cached(timeout=3600)
+@cache.cached(timeout=60)
 def api_history_month():
     (labels, values) = create_timeline_data(
-        int(time.time() - 4 * 7 * 24 * 3600), interval=24 * 3600, datefmt="%d.%m.%Y"
+        int(time.time() - 4 * 7 * 24 * 3600), interval=24 * 3600, datefmt="%d.%m"
     )
     return make_response(jsonify({"labels": labels, "values": values}), 200)
 
@@ -121,7 +139,7 @@ def api_fetch_db():
 def internal_error(_error):
     return make_response(
         render_template(
-            "error500.html", title="Internal error", navigation=get_navigation()
+            "error500.html", title="Interner Fehler", navigation=get_navigation()
         ),
         500,
     )
@@ -131,8 +149,6 @@ def internal_error(_error):
 @cache.cached(timeout=60)
 def not_found(_error):
     return make_response(
-        render_template(
-            "error404.html", title="Page not found", navigation=get_navigation()
-        ),
+        render_template("error404.html", title="404", navigation=get_navigation()),
         404,
     )

@@ -1,11 +1,21 @@
 {% extends "base.html" %} {% block content %}
-
 <div class="row">
-  <div class="col-sm-5">Anzahl: {{ product_count }}</div>
-  <div class="col-sm-5">Gesamtwert: €{{ total_value }}</div>
-  <div class="col-sm-4"></div>
+  <div class="col">
+    <table class="table table-responsive">
+      <tbody>
+        <tr>
+          <th scope="row">Anzahl</th>
+          <td>{{ product_count }}</td>
+        </tr>
+        <tr>
+          <th scope="row">Gesamtwert</th>
+          <td>{{ "€%.02f"|format(total_value) }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <div class="row">
   <div class="col">{% include "product_table.html" %}</div>
-  <div class="row">{% endblock %}</div>
 </div>
+{% endblock %}

@@ -6,19 +6,19 @@
   <tbody>
     {% for product in products %}
     <tr>
-      <td scope="row">
+      <td>
         <img
           src="{{ product.link_image }}"
           class="img-fluid"
           alt="Produktbild"
         />
         <p class="font-weight-bold text-center">
-          {{ "€%.2f"|format(product.price) }}{% if product.quantity > 1 %} x {{
+          {{ "€%.02f"|format(product.price) }}{% if product.quantity > 1 %} x {{
           product.quantity }}{% endif %}
         </p>
       </td>
 
-      <td scope="row">
+      <td>
         <p>
           Zweck:
           <a href="{{ product.source_link }}" target="_blank"

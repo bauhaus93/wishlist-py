@@ -32,7 +32,8 @@
     <title>Winglers Liste</title>
   </head>
   <body>
-    {% include "navbar.html" %}
+    {% from "navbar.html" import create_navbar %} {{ create_navbar(navigation)
+    }}
 
     <div id="content" class="container">
       <h1>{{ title }}</h1>
