@@ -64,7 +64,7 @@ def add_wishlist_to_db(wishlist_list):
                 quantity=entry["quantity"],
                 stars=entry["stars"],
                 link=entry["link"],
-                link_image=entry["img_url"],
+                link_image=entry["img_link"],
                 item_id=entry["item_id"],
                 source=source,
             )
@@ -125,12 +125,12 @@ def update_product(product_db, product_scraped, source):
             % (product_db.name[:20], product_db.link, product_scraped["link"])
         )
         product_db.link = product_scraped["link"]
-    if product_db.link_image != product_scraped["img_url"]:
+    if product_db.link_image != product_scraped["img_link"]:
         log.info(
             "Img link of '%s[..]' changed: %s -> %s"
-            % (product_db.name[:20], product_db.link_image, product_scraped["img_url"])
+            % (product_db.name[:20], product_db.link_image, product_scraped["img_link"])
         )
-        product_db.link_image = product_scraped["img_url"]
+        product_db.link_image = product_scraped["img_link"]
     if product_db.item_id != product_scraped["item_id"]:
         log.info(
             "Item ID of '%s[..]' changed: %s -> %s"

@@ -2,7 +2,7 @@
 
 import os
 import time
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -10,110 +10,6 @@ from bs4 import BeautifulSoup
 from app import logger
 
 log = logger.get()
-
-
-def scrape_wishlist(url, wishlist_name, tries=5, try_timeout=3.0):
-    log.info("Scraping for wishlist '%s'" % wishlist_name)
-    domain = urlparse(url).netloc
-
-    for i in range(tries):
-        response = requests.get(url, headers={"User-Agent": "Chrome/70.0"})
-        if response.status_code == 200:
-            break
-        else:
-            log.warn("Received http {response.status_code}, try {i+1}/{tries}")
-            time.sleep(try_timeout)
-    if response.status_code != 200:
-        log.error("Couldn't retrieve url after {tries}!")
-        return []
-
-    soup = BeautifulSoup(response.text, "html.parser")
-
-    list_items = soup.find(id="g-items")
-
-    products = []
-
-    for item in list_items.find_all("li"):
-        price = None
-        name = None
-        stars = 0.0
-        link = None
-        img_url = None
-        quantity = None
-        item_id = item.get("data-itemid", None)
-        try:
-            price_str = item.get("data-price", None)
-            if price_str:
-                price = float(price_str)
-        except ValueError:
-            log.error("Could not convert price to float, string was '%s'" % price_str)
-
-        img_tag = item.find("img")
-        if img_tag:
-            img_url = img_tag.get("src", None)
-        else:
-            log.error("Could not find img tag for product entry")
-
-        for span in item.findAll("span"):
-            if "itemRequested_" in span.get("id", ""):
-                try:
-                    quantity = int(span.string)
-                except ValueError:
-                    log.error(
-                        "Could not convert item quantity to int, string was '%s'" % span
-                    )
-
-        for links in item.findAll("a"):
-            if "itemName" in links.get("id", ""):
-                name = links.string
-                link = domain + links.get("href", "")
-            elif "reviewStarsPopoverLink" in links.get("class", ""):
-                star_string = links.get("aria-label", None)
-                if star_string:
-                    star_string_split = star_string.split(" ")[0]
-                    try:
-                        stars = float(star_string_split)
-                    except ValueError:
-                        log.error(
-                            "Could not convert stars to float, full field was '%s' % star_string"
-                        )
-                        stars = None
-        if link:
-            link = "https://" + link
-
-        product = {
-            "price": price,
-            "name": name,
-            "link": link,
-            "stars": stars,
-            "img_url": img_url,
-            "source": url,
-            "source_name": wishlist_name,
-            "item_id": item_id,
-            "quantity": quantity,
-        }
-        if any(map(lambda v: v is None, product.values())):
-            log.error("Could not find all values for product: %s" % product)
-            return []
-
-        products.append(product)
-    for link in list_items.findAll("a"):
-        link_class = link.get("class", None)
-        if (
-            link_class
-            and "g-visible-no-js" in link_class
-            and "wl-see-more" in link_class
-        ):
-            next_link = link.get("href", None)
-            if next_link:
-                next_link = "https://" + domain + next_link
-                log.info(f"Found link to more items, following it")
-                products.extend(
-                    scrape_wishlist(next_link, wishlist_name, tries, try_timeout)
-                )
-                break
-
-    return products
 
 
 def scrape_wishlists(name_url_pairs):
@@ -127,14 +23,187 @@ def scrape_wishlists(name_url_pairs):
     return wishlists
 
 
-if __name__ == "__main__":
-    urls = [
-        ("a", "https://www.amazon.de/registry/wishlist/CXTWTCBX97J6"),
-        ("b", "https://www.amazon.de/hz/wishlist/ls/3KD9WD4CSULN7"),
-    ]
+def get_page_content(url, tries, try_timeout):
+    for i in range(tries):
+        response = requests.get(url, headers={"User-Agent": "Chrome/70.0"})
+        if response.status_code == 200:
+            return response.text
+        log.warning("Received http {response.status_code}, try {i+1}/{tries}")
+        time.sleep(try_timeout)
+    if response.status_code != 200:
+        log.error("Couldn't retrieve url after {tries}!")
+        return None
 
-    wishlist = scrape_wishlists(urls)
-    for item in wishlist:
-        print(item)
-    total_price = sum(map(lambda e: e["price"], wishlist))
-    print(f"items: {len(wishlist)} | total price: € {total_price:6.2f}")
+
+def scrape_wishlist(url, wishlist_name, tries=5, try_timeout=3.0):
+    log.info("Scraping for wishlist '%s'" % wishlist_name)
+    parsed_url = urlparse(url)
+
+    content = get_page_content(url, tries, try_timeout)
+    if not content:
+        return []
+
+    soup = BeautifulSoup(content, "html.parser")
+
+    list_items = soup.find("ul", id="g-items")
+
+    products = []
+    for item in list_items.find_all("li"):
+        product = collect_product_info(item)
+        if not product:
+            return []
+        product = {
+            **product,
+            "source": url,
+            "source_name": wishlist_name,
+            "link": urlunparse((*parsed_url[:2], *urlparse(product["link"])[2:])),
+            "img_link": urlunparse(
+                (*parsed_url[:1], *urlparse(product["img_link"])[1:])
+            ),
+        }
+        products.append(product)
+
+    next_path = get_next_page_path(list_items)
+    if next_path:
+        log.info("Found link to more items, following it")
+        parsed_next = urlparse(next_path)
+        next_url = urlunparse((*parsed_url[:2], *parsed_next[2:]))
+        print(next_url)
+        products.extend(scrape_wishlist(next_url, wishlist_name, tries, try_timeout))
+
+    return products
+
+
+def collect_product_info(item):
+    product = {
+        "name": get_item_name(item),
+        "price": get_item_price(item),
+        "quantity": get_item_request_quantity(item),
+        "stars": get_item_stars(item),
+        "link": get_item_link_path(item),
+        "img_link": get_item_image_path(item),
+        "item_id": get_item_id(item),
+    }
+    if any(map(lambda v: v is None, product.values())):
+        return None
+    return product
+
+
+def get_next_page_path(item_list):
+    next_page_tag = item_list.find(
+        lambda tag: tag.name == "a"
+        and "g-visible-no-js" in tag.get("class", "")
+        and "wl-see-more" in tag.get("class", "")
+        and tag.get("href")
+    )
+    if not next_page_tag:
+        return None
+    return next_page_tag.get("href")
+
+
+def get_item_id(item):
+    item_id = item.get("data-itemid", None)
+    if not item_id:
+        log.error("Could not get id for item")
+        return None
+    return item_id
+
+
+def get_item_name(item):
+    item_name_tag = item.find(
+        lambda tag: tag.name == "a" and "itemName" in tag.get("id", "")
+    )
+    if not item_name_tag:
+        log.error("Could not find item name tag")
+        return None
+    try:
+        return item_name_tag.contents[0]
+    except IndexError:
+        log.error("Item name tag has no content, full tag is '%s'" % item_name_tag)
+        return None
+
+
+def get_item_link_path(item):
+    item_name_tag = item.find(
+        lambda tag: tag.name == "a" and "itemName" in tag.get("id", "")
+    )
+    if not item_name_tag:
+        log.error("Could not find item name tag")
+        return None
+    return item_name_tag.get("href")
+
+
+def get_item_image_path(item):
+    img_tag = item.find(lambda tag: tag.name == "img" and tag.get("src"))
+    if not img_tag:
+        log.error("Could not find img tag for item")
+        return None
+    return img_tag.get("src")
+
+
+def get_item_request_quantity(item):
+    span_requested = item.find(
+        lambda tag: tag.name == "span" and "itemRequested_" in tag.get("id", "")
+    )
+    if not span_requested:
+        log.error("Could not find span for item quantity")
+        return None
+    try:
+        return int(span_requested.contents[0])
+    except ValueError:
+        log.error(
+            "Could not convert item quantity to int, string was '%s'"
+            % span_requested.contents[0]
+        )
+        return None
+    except IndexError:
+        log.error("Request span has no content, string was '%s'" % span_requested)
+        return None
+
+
+def get_item_stars(item):
+    star_link_tag = item.find(
+        lambda tag: tag.name == "a"
+        and "reviewStarsPopoverLink" in tag.get("class", "")
+        and tag.get("aria-lable")
+    )
+    if not star_link_tag:
+        return 0.0
+    star_string = star.get("aria-label")
+    try:
+        return float(star_string.split(" ")[0])
+    except ValueError:
+        log.error("Could not convert stars to float, full field was '%s' % star_string")
+        return None
+
+
+def get_item_price(item):
+    price_div = item.find("div", attrs={"class": "price-section"})
+    if price_div is None:
+        log.error("Could not find price div in item")
+        return None
+    span_whole = price_div.find("span", attrs={"class": "a-price-whole"})
+    span_fraction = price_div.find("span", attrs={"class": "a-price-fraction"})
+    if span_whole is None:
+        log.error("Could not find span of whole price in price section")
+        return None
+    if span_fraction is None:
+        log.error("Could not find span of fractional price in price section")
+        return None
+    try:
+        price_whole = int(span_whole.contents[0])
+    except ValueError:
+        log.error(
+            "Could not convert price whole to integer, string was '%s'"
+            % span_fraction.string
+        )
+        return None
+    try:
+        price_fraction = int(span_fraction.contents[0])
+    except ValueError:
+        log.error(
+            "Could not convert price fraction to integer, string was '%s'"
+            % span_fraction.string
+        )
+        return None
+    return price_whole + price_fraction / 100.0
