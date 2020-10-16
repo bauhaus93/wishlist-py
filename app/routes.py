@@ -18,8 +18,8 @@ def get_navigation():
     return [
         ("index", "Aktuell"),
         ("new_products", "Neues"),
-        ("timeline", "Timeline"),
         ("product_archive", "Archiv"),
+        ("timeline", "Timeline"),
         ("initiate_fetch", "Fetch"),
     ]
 
@@ -65,14 +65,12 @@ def timeline():
 @app.route("/new")
 @cache.cached(timeout=60)
 def new_products():
-    last_wishlist = query.get_last_wishlist()
-    if last_wishlist:
-        products = sorted(
-            create_exended_product_list(query.get_last_wishlist().products),
-            key=lambda p: p["lifetime"],
-        )[:5]
-    else:
-        products = []
+    products = sorted(
+        create_exended_product_list(Product.query.all() or []),
+        key=lambda p: p["birth_ts"],
+        reverse=True,
+    )[:5]
+
     title = "Top 5 Neuheiten"
     return render_template(
         "newest.html",
@@ -109,8 +107,9 @@ def initiate_fetch():
 @app.route("/api/history/day")
 @cache.cached(timeout=60)
 def api_history_day():
+    curr_time = int(time.time())
     (labels, values) = create_timeline_data(
-        int(time.time() - 24 * 3600), interval=3600, datefmt="%H:%M"
+        curr_time - 24 * 3600, curr_time, interval=2 * 3600, datefmt="%H:%M"
     )
     return make_response(jsonify({"labels": labels, "values": values}), 200)
 
@@ -118,8 +117,9 @@ def api_history_day():
 @app.route("/api/history/week")
 @cache.cached(timeout=60)
 def api_history_week():
+    curr_time = int(time.time())
     (labels, values) = create_timeline_data(
-        int(time.time() - 7 * 24 * 3600), interval=24 * 3600, datefmt="%d.%m"
+        curr_time - 7 * 24 * 3600, curr_time, interval=24 * 3600, datefmt="%d.%m"
     )
     return make_response(jsonify({"labels": labels, "values": values}), 200)
 
@@ -127,8 +127,12 @@ def api_history_week():
 @app.route("/api/history/month")
 @cache.cached(timeout=60)
 def api_history_month():
+    curr_time = int(time.time())
     (labels, values) = create_timeline_data(
-        int(time.time() - 4 * 7 * 24 * 3600), interval=24 * 3600, datefmt="%d.%m"
+        curr_time - 4 * 7 * 24 * 3600,
+        curr_time,
+        interval=2 * 24 * 3600,
+        datefmt="%d.%m",
     )
     return make_response(jsonify({"labels": labels, "values": values}), 200)
 

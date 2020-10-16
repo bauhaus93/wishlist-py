@@ -34,6 +34,57 @@ class Product(db.Model):
     item_id = db.Column(db.String(64), nullable=False)
     source_id = db.Column(db.Integer, db.ForeignKey("source.id"))
 
+    def get_total_lifetime(self):
+        on_timestamps = sorted(list(map(lambda wl: wl.timestamp, self.wishlists)))
+        all_timestamps = sorted(
+            list(
+                map(
+                    lambda wl: wl.timestamp,
+                    Wishlist.query.filter(
+                        Wishlist.timestamp >= min(on_timestamps)
+                    ).all(),
+                )
+            )
+        )
+        lifetime = 0
+        for ts in on_timestamps:
+            next_index = all_timestamps.index(ts) + 1
+            if next_index == len(all_timestamps):
+                lifetime += int(time.time()) - ts
+            elif next_index > 0:
+                lifetime += all_timestamps[next_index] - ts
+        return lifetime
+
+    def get_last_wishlist_range(self):
+        on_timestamps = sorted(list(map(lambda wl: wl.timestamp, self.wishlists)))
+        all_timestamps = sorted(
+            list(
+                map(
+                    lambda wl: wl.timestamp,
+                    Wishlist.query.filter(
+                        Wishlist.timestamp >= min(on_timestamps)
+                    ).all(),
+                )
+            )
+        )
+        max_ts = max(on_timestamps)
+        max_index = all_timestamps.index(max_ts)
+        if max_index + 1 == len(all_timestamps):
+            death_ts = None
+        else:
+            death_ts = all_timestamps[max_index + 1]
+
+        birth_ts = all_timestamps[max_index]
+        on_index = on_timestamps.index(max_ts) - 1
+        all_index = all_timestamps.index(max_ts) - 1
+        while on_index >= 0 and all_index >= 0:
+            if on_timestamps[on_index] != all_timestamps[all_index]:
+                break
+            birth_ts = all_timestamps[all_index]
+            on_index -= 1
+            all_index -= 1
+        return (birth_ts, death_ts)
+
     def as_dict(self):
         return {
             "id": self.id,

@@ -28,9 +28,7 @@ def format_duration(duration):
     return "Jetzt"
 
 
-def create_timeline_data(
-    start, end=int(time.time()), interval=24 * 3600, datefmt="%d.%m.%Y"
-):
+def create_timeline_data(start, end, interval=24 * 3600, datefmt="%d.%m.%Y"):
     start = (start // 3600) * 3600
     # end = (end // 3600) * 3600
 
@@ -75,11 +73,18 @@ def create_timeline_data(
 
 def create_exended_product_list(products):
     def extend_product(p):
-        lifetime = query.get_product_lifetime(p.id)
+        birth_ts, death_ts = p.get_last_wishlist_range()
+        if death_ts is None:
+            lifetime = int(time.time()) - birth_ts
+        else:
+            lifetime = death_ts - birth_ts
+
         return {
             **p.as_dict(),
-            "lifetime_formatted": format_duration(lifetime),
-            "lifetime": lifetime,
+            "lifetime": format_duration(lifetime),
+            "birth": get_datetime(birth_ts, "%d.%m.%Y %H:%M"),
+            "death": get_datetime(death_ts, "%d.%m.%Y %H:%M") if death_ts else None,
+            "birth_ts": birth_ts,
         }
 
     if products:
