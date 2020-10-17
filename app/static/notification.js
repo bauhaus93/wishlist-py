@@ -1,40 +1,50 @@
-function requestPush() {
-  if (window.Notification) {
-    console.log(window.Notification.permission);
-    if (window.Notification.permission == "granted") {
-      emitNotification("Aktiv", "Notifications sind aktiviert!");
-    } else if (window.Notification.permission == "default") {
-      window.Notification.requestPermission().then(function (perm) {
+function handleNotificationWorker(workerScript) {
+  if (navigator.serviceWorker) {
+    navigator.serviceWorker.register(workerScript).then(
+      (reg) => {
+        reg.pushManager
+          .getSubscription()
+          .then((sub) => {
+            if (sub == null) {
+              console.log("Not subscribed to service");
+            } else {
+              console.log("Already subscribed:", sub);
+            }
+          })
+          .catch((e) => {
+            console.log("Could not get subscriptions:", e);
+          });
+      },
+      (e) => {
+        console.log("Could not register worker script:", e);
+      }
+    );
+  } else {
+    console.log("Browser doesn't support service workers");
+  }
+}
+
+function subscribeUser() {
+  if (window.Notification && navigator.serviceWorker) {
+    if (window.Notification.permission == "default") {
+      window.Notification.requestPermission().then((perm) => {
         if (perm == "granted") {
-          emitNotification("Aktiv", "Notifications wurden aktiviert!");
+          navigator.serviceWorker.ready.then((reg) => {
+            registerSubscription(reg);
+          });
         }
       });
     }
-  } else {
-    console.log("Browser doesn't support notifications");
   }
 }
 
-function registerPush(changeUrl) {}
-
-function check_wishlist_changed(changeUrl) {}
-
-function update_timestamp(lastChange) {
-  var lastChangeLocal = sessionStorage.getItem("lastChange");
-  if (lastChangeLocal == null) {
-    sessionStorage.setItem("lastChange", lastChange);
-    return true;
-  } else if (lastChangeLocal < lastChange) {
-    sessionStorage.setItem("lastChange", lastChange);
-    return true;
-  }
-  return true;
-}
-
-function emitNotification(title, body) {
-  var options = {
-    body: body,
-    silent: true,
-  };
-  new Notification(title, options);
+function registerSubscription(reg) {
+  reg.pushManager
+    .subscribe({ userVisibleOnly: true })
+    .then((sub) => {
+      console.log("Endpoint:", sub.endpoint);
+    })
+    .catch((e) => {
+      console.log("Could not subscribe to push:", e);
+    });
 }

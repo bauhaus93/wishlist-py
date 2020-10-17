@@ -3,7 +3,8 @@ from base64 import b64encode
 from datetime import datetime
 
 import pytz
-from flask import jsonify, make_response, redirect, render_template, url_for
+from flask import (Response, jsonify, make_response, redirect, render_template,
+                   url_for)
 
 from app import app, cache, db, logger, query
 from app.models import Product, Wishlist
@@ -112,8 +113,7 @@ def initiate_fetch():
     return redirect(url_for("index"))
 
 
-@app.route("/api/lastChange")
-@cache.cached(timeout=60)
+@app.route("/api/lastchange")
 def api_get_last_change_timestamp():
     return jsonify({"lastChange": query.get_last_change_timestamp()})
 
@@ -149,6 +149,12 @@ def api_history_month():
         datefmt="%d.%m",
     )
     return make_response(jsonify({"labels": labels, "values": values}), 200)
+
+
+@app.route("/notification_worker.js")
+def api_notification_worker():
+    with open("app/static/notification_worker.js") as f:
+        return Response(f.read(), mimetype="text/javascript")
 
 
 @app.route("/api/fetchdb")

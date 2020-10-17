@@ -13,7 +13,9 @@ $PWD/venv/bin/flask db upgrade &&
 	$PWD/venv/bin/gunicorn -b :${PORT} \
 		--access-logfile gunicorn_access.log \
 		--error-logfile gunicorn_error.log \
-		--keyfile key.pem \
-		--certfile certificate.pem \
-		--ssl-version TLS_SERVER \
-		wishlist:app
+		\
+		\
+		\
+		wishlist:app #--keyfile key.pem \
+#--certfile certificate.pem \
+#--ssl-version TLS_SERVER \
