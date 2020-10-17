@@ -9,9 +9,7 @@ function handlePush(changeUrl) {
         this.close();
       },
     });
-    if (pushAsked == null) {
-      sessionStorage.setItem("pushAsked", true);
-    }
+    sessionStorage.setItem("pushAsked", true);
   }
   if (Push.Permission.has()) {
     registerPush(changeUrl);
@@ -19,7 +17,7 @@ function handlePush(changeUrl) {
 }
 
 function registerPush(changeUrl) {
-  var interval = setInterval(check_wishlist_changed, 2000, changeUrl);
+  setInterval(check_wishlist_changed, 2000, changeUrl);
 }
 
 function check_wishlist_changed(changeUrl) {

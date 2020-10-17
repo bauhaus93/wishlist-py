@@ -4,3 +4,5 @@ venv
 *.log
 *.db
 *.out
+*.pem
+*.p12
