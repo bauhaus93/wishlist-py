@@ -65,8 +65,16 @@ def timeline():
 @app.route("/new")
 @cache.cached(timeout=60)
 def new_products():
+    first_wl = query.get_first_wishlist()
+    if first_wl:
+        first_ts = first_wl.timestamp
+    else:
+        first_ts = 0
     products = sorted(
-        create_exended_product_list(Product.query.all() or []),
+        filter(
+            lambda p: p["birth_ts"] > first_ts,
+            create_exended_product_list(Product.query.all() or []),
+        ),
         key=lambda p: p["birth_ts"],
         reverse=True,
     )[:5]
