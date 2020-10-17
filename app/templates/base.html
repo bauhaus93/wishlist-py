@@ -42,8 +42,10 @@
         </div>
       </div>
       {% block content %}{% endblock %}
-    </div>
 
-    {% include "notification.html" %}
+      <div class="row my-3">
+        <div class="col">{% include "notification.html" %}</div>
+      </div>
+    </div>
   </body>
 </html>

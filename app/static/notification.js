@@ -1,32 +1,23 @@
-function handlePush(changeUrl) {
-  var pushAsked = sessionStorage.getItem("pushAsked");
-  if (pushAsked == null) {
-    Push.create("Notifikationen aktiviert", {
-      body: "",
-      timeout: 4000,
-      onClick: function () {
-        window.focus();
-        this.close();
-      },
-    });
-    sessionStorage.setItem("pushAsked", true);
-  }
-  if (Push.Permission.has()) {
-    registerPush(changeUrl);
-  }
-}
-
-function registerPush(changeUrl) {
-  setInterval(check_wishlist_changed, 2000, changeUrl);
-}
-
-function check_wishlist_changed(changeUrl) {
-  $.get(changeUrl, function (response) {
-    if (update_timestamp(response.lastChange) === true) {
-      emitPush();
+function requestPush() {
+  if (window.Notification) {
+    console.log(window.Notification.permission);
+    if (window.Notification.permission == "granted") {
+      emitNotification("Aktiv", "Notifications sind aktiviert!");
+    } else if (window.Notification.permission == "default") {
+      window.Notification.requestPermission().then(function (perm) {
+        if (perm == "granted") {
+          emitNotification("Aktiv", "Notifications wurden aktiviert!");
+        }
+      });
     }
-  });
+  } else {
+    console.log("Browser doesn't support notifications");
+  }
 }
+
+function registerPush(changeUrl) {}
+
+function check_wishlist_changed(changeUrl) {}
 
 function update_timestamp(lastChange) {
   var lastChangeLocal = sessionStorage.getItem("lastChange");
@@ -40,12 +31,10 @@ function update_timestamp(lastChange) {
   return true;
 }
 
-function emitPush() {
-  Push.create("Neue Forderung!", {
-    body: "Oweier",
-    onClick: function () {
-      window.focus();
-      this.close();
-    },
-  });
+function emitNotification(title, body) {
+  var options = {
+    body: body,
+    silent: true,
+  };
+  new Notification(title, options);
 }

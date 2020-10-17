@@ -1,9 +1,4 @@
-<script
-  src="https://cdnjs.cloudflare.com/ajax/libs/push.js/1.0.12/push.min.js"
-  integrity="sha512-DjIQO7OxE8rKQrBLpVCk60Zu0mcFfNx2nVduB96yk5HS/poYZAkYu5fxpwXj3iet91Ezqq2TNN6cJh9Y5NtfWg=="
-  crossorigin="anonymous"
-></script>
+<button class="btn btn-secondary" onClick="requestPush()">
+  &#128276; Aktiviere Notifications
+</button>
 <script src="{{ url_for('static', filename='notification.js') }}" }></script>
-<script>
-  handlePush("{{ url_for('api_get_last_change_timestamp') }}");
-</script>
