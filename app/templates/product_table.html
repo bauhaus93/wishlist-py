@@ -2,14 +2,14 @@
   <tbody>
     {% for product in products %}
     <tr>
-      <td rowspan="5">
+      <td colspan="1">
         <img
           src="{{ product.link_image }}"
-          class="img-responsive"
+          class="img-reponsive"
           alt="Produktbild"
         />
       </td>
-      <th colspan="2">
+      <th colspan="2" class="align-middle">
         <a href="{{ product.link }}" target="_blank">{{ product.name }}</a>
       </th>
     </tr>

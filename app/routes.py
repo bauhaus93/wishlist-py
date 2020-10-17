@@ -104,6 +104,12 @@ def initiate_fetch():
     return redirect(url_for("index"))
 
 
+@app.route("/api/lastChange")
+@cache.cached(timeout=60)
+def api_get_last_change_timestamp():
+    return jsonify({"lastChange": query.get_last_change_timestamp()})
+
+
 @app.route("/api/history/day")
 @cache.cached(timeout=60)
 def api_history_day():
