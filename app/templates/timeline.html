@@ -31,21 +31,21 @@
 		  chart = $.drawChart("timeline-chart", response.labels, response.values);
 		});
 	}
-	$(function() {
+	$(() => {
 			updateTable("api/history/day")
 		});
 
-	$("#buttonDay").click(function() {
+	$("#buttonDay").click(() => {
 			if ($("#buttonDay").is(":checked")) {
 					updateTable("api/history/day");
 			}
 	});
-	$("#buttonWeek").click(function() {
+	$("#buttonWeek").click(() => {
 			if ($("#buttonWeek").is(":checked")) {
 					updateTable("api/history/week");
 			}
 	});
-	$("#buttonMonth").click(function() {
+	$("#buttonMonth").click(() => {
 			if ($("#buttonMonth").is(":checked")) {
 					updateTable("api/history/month");
 			}

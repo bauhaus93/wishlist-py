@@ -29,6 +29,8 @@
       crossorigin="anonymous"
     ></script>
 
+    {% include "notification.html" %}
+
     <title>Winglers Liste</title>
   </head>
   <body>
@@ -42,10 +44,6 @@
         </div>
       </div>
       {% block content %}{% endblock %}
-
-      <div class="row my-3">
-        <div class="col">{% include "notification.html" %}</div>
-      </div>
     </div>
   </body>
 </html>

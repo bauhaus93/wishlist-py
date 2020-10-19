@@ -4,10 +4,10 @@ from datetime import datetime
 
 import pytz
 from flask import (Response, jsonify, make_response, redirect, render_template,
-                   url_for)
+                   request, url_for)
 
 from app import app, cache, db, logger, query
-from app.models import Product, Wishlist
+from app.models import Product, Subscription, Wishlist
 from app.scrape_task import update_wishlist_db
 from app.utility import (create_exended_product_list, create_timeline_data,
                          get_datetime)
@@ -21,7 +21,6 @@ def get_navigation():
         ("new_products", "Neues"),
         ("product_archive", "Archiv"),
         ("timeline", "Timeline"),
-        ("initiate_fetch", "Fetch"),
     ]
 
 
@@ -59,7 +58,9 @@ def index():
 @cache.cached(timeout=60)
 def timeline():
     return render_template(
-        "timeline.html", title="Historischer Überblick", navigation=get_navigation()
+        "timeline.html",
+        title="Historischer Überblick",
+        navigation=get_navigation(),
     )
 
 
@@ -107,15 +108,31 @@ def product_archive(page=1):
     )
 
 
-@app.route("/fetch")
-def initiate_fetch():
-    update_wishlist_db()
-    return redirect(url_for("index"))
+@app.route("/subscribe", methods=["POST"])
+def subscribe():
+    if request.is_json:
+        json = request.get_json(force=True)
+        if (
+            json is None
+            or json.get("subscription", None) is None
+            or json.get("subscription").get("endpoint", None) is None
+            or json.get("subscription").get("keys", None) is None
+            or json.get("subscription").get("keys").get("auth", None) is None
+            or json.get("subscription").get("keys").get("p256dh", None) is None
+        ):
+            return make_response("Body not of subscription format", 400)
+        if Subscription.query.filter_by(sub_json=str(json)).first():
+            log.info("Subscription already stored!")
+        else:
+            sub = Subscription(sub_json=str(json))
+            log.info("Added new subscription: %s", sub.sub_json)
+            db.session.add(sub)
+            db.session.commit()
 
+    else:
+        return make_response("Body not JSON", 400)
 
-@app.route("/api/lastchange")
-def api_get_last_change_timestamp():
-    return jsonify({"lastChange": query.get_last_change_timestamp()})
+    return make_response("OK", 200)
 
 
 @app.route("/api/history/day")
@@ -157,21 +174,17 @@ def api_notification_worker():
         return Response(f.read(), mimetype="text/javascript")
 
 
-@app.route("/api/fetchdb")
-def api_fetch_db():
-    with open("db/app.db", "rb") as f:
-        data = b64encode(f.read())
-    return make_response(data, 200)
-
-
-@app.errorhandler(500)
+@app.errorhandler(400)
 @cache.cached(timeout=60)
-def internal_error(_error):
+def bad_request(_error):
     return make_response(
         render_template(
-            "error500.html", title="Interner Fehler", navigation=get_navigation()
+            "error.html",
+            title="HTTP 400",
+            navigation=get_navigation(),
+            error_text="Ich hab dich nicht verstanden, ich hab Kopfhörer auf",
         ),
-        500,
+        404,
     )
 
 
@@ -179,6 +192,25 @@ def internal_error(_error):
 @cache.cached(timeout=60)
 def not_found(_error):
     return make_response(
-        render_template("error404.html", title="404", navigation=get_navigation()),
+        render_template(
+            "error.html",
+            title="HTTP 404",
+            navigation=get_navigation(),
+            error_text="Diese Seite konnte etzadla nicht gefunden werden",
+        ),
         404,
+    )
+
+
+@app.errorhandler(500)
+@cache.cached(timeout=60)
+def internal_error(_error):
+    return make_response(
+        render_template(
+            "error.html",
+            title="HTTP 500",
+            navigation=get_navigation(),
+            error_text="Da wurde dem Server wohl heftig die Brügel neigschmissen",
+        ),
+        500,
     )

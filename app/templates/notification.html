@@ -1,9 +1,7 @@
 <script src="{{ url_for('static', filename='notification.js') }}" }></script>
 
 <script>
-  handleNotificationWorker("{{ url_for('api_notification_worker') }}");
+  $(() => {
+    handleNotificationWorker("{{ url_for('api_notification_worker') }}");
+  });
 </script>
-
-<button class="btn btn-secondary" onClick="subscribeUser()">
-  &#128276; Aktiviere Notifications
-</button>

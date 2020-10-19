@@ -6,3 +6,4 @@ venv
 *.out
 *.pem
 *.p12
+*.b64

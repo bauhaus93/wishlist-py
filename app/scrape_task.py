@@ -5,6 +5,7 @@ import time
 from app import app, db, logger, query, scheduler
 from app.models import Product, Source, Wishlist, WishlistProduct
 from app.scrape import scrape_wishlists
+from app.subscription import push_change_notification
 
 log = logger.get()
 
@@ -21,10 +22,33 @@ def update_wishlist_db():
     if need_wishlist_update(wishlist):
         log.info("Wishlist changed, add new one")
         add_wishlist_to_db(wishlist)
+        if has_new_products(wishlist):
+            push_change_notification(
+                "Neue Forderung", "Neue Forderung", int(time.time())
+            )
     else:
         log.info("Wishlist didn't change, only check for product updates")
         update_products(wishlist)
         log.info("Updated products!")
+
+
+@scheduler.task("interval", id="LELNOT", seconds=10)
+def print_not():
+    push_change_notification("LEL", "ELLELEL", int(time.time()))
+
+
+def has_new_products(wishlist):
+    last_wishlist = query.get_last_wishlist()
+    if last_wishlist is None:
+        return True
+    last_products = set(
+        map(
+            lambda p: p.name,
+            last_wishlist.products,
+        )
+    )
+    new_products = set(map(lambda p: p["name"], wishlist))
+    return len(new_products.difference(last_products)) > 0
 
 
 def need_wishlist_update(wishlist):
