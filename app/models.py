@@ -113,7 +113,7 @@ class Source(db.Model):
 class Subscription(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     expires = db.Column(
-        db.Integer, default=lambda: int(time.time() + 7 * 24 * 3600), nullable=False
+        db.Integer, default=lambda: int(time.time() + 24 * 3600), nullable=False
     )
     sub_json = db.Column(db.String(256), nullable=False)
     notification_timestamp = db.Column(

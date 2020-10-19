@@ -5,9 +5,10 @@ Revises: 8e3680d27a9c
 Create Date: 2020-10-19 15:19:46.106627
 
 """
+import time
+
 import sqlalchemy as sa
 from alembic import op
-import time
 
 # revision identifiers, used by Alembic.
 revision = "803d47a0fc35"
@@ -23,7 +24,7 @@ def upgrade():
             sa.Column(
                 "expires",
                 sa.Integer(),
-                server_default=str(int(time.time() + 7 * 24 * 3600)),
+                server_default=str(int(time.time() + 24 * 3600)),
                 nullable=False,
             )
         )

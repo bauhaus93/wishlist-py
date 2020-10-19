@@ -24,17 +24,12 @@ def update_wishlist_db():
         add_wishlist_to_db(wishlist)
         if has_new_products(wishlist):
             push_change_notification(
-                "Neue Forderung", "Neue Forderung", int(time.time())
+                "Neue Forderung", "Etzadla was neues", int(time.time())
             )
     else:
         log.info("Wishlist didn't change, only check for product updates")
         update_products(wishlist)
         log.info("Updated products!")
-
-
-@scheduler.task("interval", id="LELNOT", seconds=10)
-def print_not():
-    push_change_notification("LEL", "ELLELEL", int(time.time()))
 
 
 def has_new_products(wishlist):

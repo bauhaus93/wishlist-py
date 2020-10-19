@@ -9,6 +9,11 @@ function handleNotificationWorker(workerScript) {
               console.log("Not subscribed to service");
             } else {
               console.log("Already subscribed:", sub);
+              if (sessionStorage.getItem("subExpiration") > Date.now() / 1000) {
+                navigator.serviceWorker.ready.then((reg) => {
+                  registerSubscription(reg);
+                });
+              }
             }
           })
           .catch((e) => {
@@ -30,6 +35,10 @@ function subscribeUser() {
       window.Notification.requestPermission().then((perm) => {
         if (perm == "granted") {
           navigator.serviceWorker.ready.then((reg) => {
+            sessionStorage.setItem(
+              "subExpiration",
+              Math.floor(Date.now() / 1000)
+            );
             registerSubscription(reg);
           });
         }
@@ -50,7 +59,6 @@ function urlBase64ToUint8Array(base64String) {
 async function registerSubscription(reg) {
   const response = await fetch("/static/vapid_public.b64");
   const vapidPublicKey = await response.text();
-  console.log(vapidPublicKey);
   reg.pushManager
     .subscribe({
       userVisibleOnly: true,
@@ -64,7 +72,6 @@ async function registerSubscription(reg) {
         },
         body: JSON.stringify({ subscription: sub }),
       });
-      console.log("Endpoint:", sub.endpoint);
     })
     .catch((e) => {
       console.log("Could not subscribe to push:", e);
