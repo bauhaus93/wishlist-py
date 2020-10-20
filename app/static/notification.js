@@ -9,7 +9,10 @@ function handleNotificationWorker(workerScript) {
               console.log("Not subscribed to service");
             } else {
               console.log("Already subscribed:", sub);
-              if (sessionStorage.getItem("subExpiration") > Date.now() / 1000) {
+              if (
+                sessionStorage.getItem("subExpiration") - 12 * 3600 >
+                Date.now() / 1000
+              ) {
                 navigator.serviceWorker.ready.then((reg) => {
                   registerSubscription(reg);
                 });

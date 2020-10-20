@@ -129,14 +129,14 @@ def subscribe():
             return make_response("Body not of subscription format", 400)
         existing_sub = Subscription.query.filter_by(sub_json=str(json)).first()
         if existing_sub:
+            log.info("Subscription already stored, renewing!")
             existing_sub.sub_json = str(json)
             existing_sub.expires = int(time.time()) + 24 * 3600
-            log.info("Subscription already stored, renewing!")
         else:
             sub = Subscription(sub_json=str(json))
             log.info("Added new subscription: %s", sub.sub_json)
             db.session.add(sub)
-            db.session.commit()
+        db.session.commit()
 
     else:
         return make_response("Body not JSON", 400)

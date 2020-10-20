@@ -7,7 +7,7 @@ from urllib.parse import urlparse, urlunparse
 import requests
 from bs4 import BeautifulSoup
 
-from app import logger
+from app import app, logger
 
 log = logger.get()
 
@@ -19,13 +19,17 @@ def scrape_wishlists(name_url_pairs):
     wishlists = []
     for (name, url) in name_url_pairs:
         wishlist = scrape_wishlist(url, name)
+        if len(wishlist) == 0:
+            return []
         wishlists.extend(wishlist)
     return wishlists
 
 
 def get_page_content(url, tries, try_timeout):
     for i in range(tries):
-        response = requests.get(url, headers={"User-Agent": "Chrome/70.0"})
+        response = requests.get(
+            url, headers={"User-Agent": app.config.get("USER_AGENT")}
+        )
         if response.status_code == 200:
             return response.text
         log.warning("Received http {response.status_code}, try {i+1}/{tries}")
@@ -177,12 +181,18 @@ def get_item_stars(item):
 
 
 def get_item_price(item):
-    price_div = item.find("div", attrs={"class": "price-section"})
+    price_div = item.find(
+        lambda tag: tag.name == "div" and "price-section" in tag.get("class", "")
+    )
     if price_div is None:
         log.error("Could not find price div in item")
         return None
-    span_whole = price_div.find("span", attrs={"class": "a-price-whole"})
-    span_fraction = price_div.find("span", attrs={"class": "a-price-fraction"})
+    span_whole = price_div.find(
+        lambda tag: tag.name == "span" and "a-price-whole" in tag.get("class", "")
+    )
+    span_fraction = price_div.find(
+        lambda tag: tag.name == "span" and "a-price-fraction" in tag.get("class", "")
+    )
     if span_whole is None:
         log.error("Could not find span of whole price in price section")
         return None
