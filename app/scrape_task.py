@@ -161,7 +161,7 @@ def update_product(product_db, product_scraped, source):
 
     if product_db.source is None or product_db.source.url != source.url:
         log.info(
-            "Source of '%s[..]' changed: %s -> %s"
-            % (product_db.name[:20], product_db.source, source)
+            "Source url of '%s[..]' changed: %s -> %s"
+            % (product_db.name[:20], product_db.source.url[:20], source.url[:20])
         )
         product_db.source = source

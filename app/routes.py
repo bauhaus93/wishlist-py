@@ -92,7 +92,9 @@ def new_products():
 
 @app.route("/fetch")
 def fetch():
-    update_wishlist_db()
+    app.apscheduler.add_job(
+        id="fetch_job_{int(time.time())}", func=update_wishlist_db, trigger="date"
+    )
     return redirect(url_for("index"))
 
 
