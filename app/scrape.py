@@ -185,8 +185,8 @@ def get_item_price(item):
         lambda tag: tag.name == "div" and "price-section" in tag.get("class", "")
     )
     if price_div is None:
-        log.error("Could not find price div in item")
-        return None
+        log.warn("Could not find price div in item")
+        return 0.0
     span_whole = price_div.find(
         lambda tag: tag.name == "span" and "a-price-whole" in tag.get("class", "")
     )
